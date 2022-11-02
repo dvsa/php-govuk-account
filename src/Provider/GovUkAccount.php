@@ -20,6 +20,7 @@ use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Tool\BearerAuthorizationTrait;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 
 class GovUkAccount extends AbstractProvider
@@ -176,9 +177,19 @@ class GovUkAccount extends AbstractProvider
      */
     public function validateAccessToken(string $token): array
     {
+        /**
+         * The typing of the JWT library is not quite right for `decode()` method for PHPStan as it doesn't accept ArrayAccess.
+         * The following type is required to cast `ArrayAccess<string, Key>` to just an expected `array<string, Key>`.
+         *
+         * Can be removed once fixed in the JWT library.
+         *
+         * @var array<string, Key> $keySet
+         */
+        $keySet = $this->getGovUkSignInPublicKeys();
+
         $tokenClaims = (array)JWT::decode(
             $token,
-            $this->getGovUkSignInPublicKeys()
+            $keySet
         );
 
         if ($tokenClaims['iss']
@@ -203,7 +214,6 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
-     * @return Key[]
      * @throws ApiException
      * @throws GuzzleException
      */
@@ -226,7 +236,9 @@ class GovUkAccount extends AbstractProvider
     public function loadJwks(string $jwksUrl): ArrayAccess
     {
         if ($this->cache instanceof CacheItemPoolInterface) {
-            return new CachedKeySet($jwksUrl, $this->httpClient, new HttpFactory(), $this->cache);
+            $httpClient = $this->getHttpClient();
+            assert($httpClient instanceof ClientInterface);
+            return new CachedKeySet($jwksUrl, $httpClient, new HttpFactory(), $this->cache);
         }
 
         $response = $this->getHttpClient()->request('GET', $jwksUrl);
@@ -247,9 +259,19 @@ class GovUkAccount extends AbstractProvider
      */
     public function validateIdToken(string $token, string $nonce = null): array
     {
+        /**
+         * The typing of the JWT library is not quite right for `decode()` method for PHPStan as it doesn't accept ArrayAccess.
+         * The following type is required to cast `ArrayAccess<string, Key>` to just an expected `array<string, Key>`.
+         *
+         * Can be removed once fixed in the JWT library.
+         *
+         * @var array<string, Key> $keySet
+         */
+        $keySet = $this->getGovUkSignInPublicKeys();
+
         $tokenClaims = (array)JWT::decode(
             $token,
-            $this->getGovUkSignInPublicKeys()
+            $keySet
         );
 
         if ($tokenClaims['iss']
