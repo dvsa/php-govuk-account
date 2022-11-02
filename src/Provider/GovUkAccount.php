@@ -238,7 +238,13 @@ class GovUkAccount extends AbstractProvider
         if ($this->cache instanceof CacheItemPoolInterface) {
             $httpClient = $this->getHttpClient();
             assert($httpClient instanceof ClientInterface);
-            return new CachedKeySet($jwksUrl, $httpClient, new HttpFactory(), $this->cache);
+
+            return new CachedKeySet(
+                $jwksUrl,
+                $httpClient,
+                new HttpFactory(),
+                $this->cache
+            );
         }
 
         $response = $this->getHttpClient()->request('GET', $jwksUrl);
@@ -330,7 +336,7 @@ class GovUkAccount extends AbstractProvider
         );
 
         $options += [
-            'client_assertion'      => $encodedToken,
+            'client_assertion' => $encodedToken,
             'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
         ];
 
