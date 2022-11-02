@@ -1,6 +1,6 @@
 <?php
 
-namespace Dvsa\GovUkSignInSdk\Token;
+namespace Dvsa\GovUkAccount\Token;
 
 use Dvsa\GovUkSignInSdk\Exception\InvalidTokenException;
 use Dvsa\GovUkSignInSdk\Provider\GovUkAccount;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Dvsa\GovUkSignInSdk\Exception;
+namespace Dvsa\GovUkAccount\Exception;
 
 use Throwable;
 
