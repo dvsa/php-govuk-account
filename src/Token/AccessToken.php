@@ -2,8 +2,8 @@
 
 namespace Dvsa\GovUkAccount\Token;
 
-use Dvsa\GovUkSignInSdk\Exception\InvalidTokenException;
-use Dvsa\GovUkSignInSdk\Provider\GovUkAccount;
+use Dvsa\GovUkAccount\Exception\InvalidTokenException;
+use Dvsa\GovUkAccount\Provider\GovUkAccount;
 
 class AccessToken extends \League\OAuth2\Client\Token\AccessToken
 {

@@ -23,7 +23,7 @@ class GovUkAccountUser implements ResourceOwnerInterface, JsonSerializable
     }
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return mixed|null
      */

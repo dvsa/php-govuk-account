@@ -4,8 +4,8 @@ namespace Dvsa\GovUkAccount\Provider;
 
 use ArrayAccess;
 use DateTimeImmutable;
-use Dvsa\GovUkSignInSdk\Exception\ApiException;
-use Dvsa\GovUkSignInSdk\Exception\InvalidTokenException;
+use Dvsa\GovUkAccount\Exception\ApiException;
+use Dvsa\GovUkAccount\Exception\InvalidTokenException;
 use Exception;
 use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWK;
@@ -46,19 +46,18 @@ class GovUkAccount extends AbstractProvider
     use BearerAuthorizationTrait;
 
     public function __construct(
-        array $options = [],
-        array $collaborators = [],
+        array                  $options = [],
+        array                  $collaborators = [],
         CacheItemPoolInterface $cache = null
-    ) {
+    )
+    {
         parent::__construct($options, $collaborators);
 
         $this->clientId = $options['client_id'];
         $this->algorithm = $options['keys']['algorithm'];
         $this->privateKey = base64_decode($options['keys']['private_key']);
-        $this->loggedInUrl
-            = $this->redirectUri = $options['redirect_uri']['logged_in'];
-        $this->expectedCoreIdentityIssuer
-            = $options['expected_core_identity_issuer'];
+        $this->loggedInUrl = $this->redirectUri = $options['redirect_uri']['logged_in'];
+        $this->expectedCoreIdentityIssuer = $options['expected_core_identity_issuer'];
         $this->cache = $cache;
         $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
 
@@ -72,13 +71,13 @@ class GovUkAccount extends AbstractProvider
     /**
      * Parses a JWK in array format, returning a Key object or throwing an exception.
      *
-     * @param  array|string  $jwk  JWK - Will attempt to parse string as JSON.
+     * @param array|string $jwk JWK - Will attempt to parse string as JSON.
      *
      * @return Key
      */
     private function parseIdentityAssuranceKey($jwk): Key
     {
-        if ( ! is_array($jwk)) {
+        if (!is_array($jwk)) {
             $jwk = json_decode($jwk);
         }
 
@@ -97,7 +96,7 @@ class GovUkAccount extends AbstractProvider
      *
      * Note: Not specifying or empty($state) results in setting a randomly generated one.
      *
-     * @param  string|null  $state
+     * @param string|null $state
      *
      * @return string
      */
@@ -123,12 +122,11 @@ class GovUkAccount extends AbstractProvider
      */
     protected function getOpenIdConnectConfiguration(string $key)
     {
-        if ( ! isset($this->openIdConnectConfiguration)) {
-            $this->openIdConnectConfiguration
-                = $this->loadOpenIdConnectConfiguration();
+        if (!isset($this->openIdConnectConfiguration)) {
+            $this->openIdConnectConfiguration = $this->loadOpenIdConnectConfiguration();
         }
 
-        if ( ! array_key_exists($key, $this->openIdConnectConfiguration)) {
+        if (!array_key_exists($key, $this->openIdConnectConfiguration)) {
             throw new InvalidArgumentException(
                 "Cannot find {$key} in openIdConnectConfiguration"
             );
@@ -197,15 +195,15 @@ class GovUkAccount extends AbstractProvider
         ) {
             throw new InvalidTokenException(
                 'The Issuer of the access token is invalid: '
-                .$tokenClaims['iss'].' !== '
-                .$this->getOpenIdConnectConfiguration('issuer')
+                . $tokenClaims['iss'] . ' !== '
+                . $this->getOpenIdConnectConfiguration('issuer')
             );
         }
 
         if ($tokenClaims['client_id'] !== $this->clientId) {
             throw new InvalidTokenException(
                 'The client_id of the access token is invalid: '
-                .$tokenClaims['client_id'].' !== '.$this->clientId
+                . $tokenClaims['client_id'] . ' !== ' . $this->clientId
             );
         }
 
@@ -219,7 +217,7 @@ class GovUkAccount extends AbstractProvider
      */
     protected function getGovUkSignInPublicKeys(): ArrayAccess
     {
-        if ( ! isset($this->govUkSignInPublicKeys)) {
+        if (!isset($this->govUkSignInPublicKeys)) {
             $this->govUkSignInPublicKeys
                 = $this->loadJwks(
                 $this->getOpenIdConnectConfiguration('jwks_uri')
@@ -285,22 +283,22 @@ class GovUkAccount extends AbstractProvider
         ) {
             throw new InvalidTokenException(
                 'The Issuer of the ID token is invalid: '
-                .$tokenClaims['iss'].' !== '
-                .$this->getOpenIdConnectConfiguration('issuer')
+                . $tokenClaims['iss'] . ' !== '
+                . $this->getOpenIdConnectConfiguration('issuer')
             );
         }
 
         if ($tokenClaims['aud'] !== $this->clientId) {
             throw new InvalidTokenException(
                 'The aud of the ID token is invalid: '
-                .$tokenClaims['aud'].' !== '.$this->clientId
+                . $tokenClaims['aud'] . ' !== ' . $this->clientId
             );
         }
 
         if ($nonce !== null && $tokenClaims['nonce'] !== $nonce) {
             throw new InvalidTokenException(
                 'The nonce of the ID token is invalid: '
-                .$tokenClaims['nonce'].' !== '.$nonce
+                . $tokenClaims['nonce'] . ' !== ' . $nonce
             );
         }
 
@@ -314,7 +312,8 @@ class GovUkAccount extends AbstractProvider
     public function getAccessToken(
         $grant,
         array $options = []
-    ): \Dvsa\GovUkSignInSdk\Token\AccessToken {
+    ): \Dvsa\GovUkAccount\Token\AccessToken
+    {
         $issuedAt = new DateTimeImmutable();
         $expiryDelta = $options['access_token_expiry_delta'] ??
             static::DEFAULT_ACCESS_TOKEN_EXPIRY;
@@ -341,7 +340,7 @@ class GovUkAccount extends AbstractProvider
         ];
 
         $accessToken = parent::getAccessToken($grant, $options);
-        assert($accessToken instanceof \Dvsa\GovUkSignInSdk\Token\AccessToken);
+        assert($accessToken instanceof \Dvsa\GovUkAccount\Token\AccessToken);
 
         return $accessToken;
     }
@@ -386,7 +385,7 @@ class GovUkAccount extends AbstractProvider
      *
      * Note: Not specifying or empty($nonce) results in setting a randomly generated one.
      *
-     * @param  string|null  $nonce
+     * @param string|null $nonce
      *
      * @return string
      */
@@ -421,25 +420,27 @@ class GovUkAccount extends AbstractProvider
     }
 
     protected function createAccessToken(
-        array $response,
+        array         $response,
         AbstractGrant $grant
-    ): \Dvsa\GovUkSignInSdk\Token\AccessToken {
-        return new \Dvsa\GovUkSignInSdk\Token\AccessToken($response, $this);
+    ): \Dvsa\GovUkAccount\Token\AccessToken
+    {
+        return new \Dvsa\GovUkAccount\Token\AccessToken($response, $this);
     }
 
     /**
      * @throws InvalidTokenException
      */
     protected function createResourceOwner(
-        array $response,
+        array       $response,
         AccessToken $token
-    ): GovUkAccountUser {
-        assert($token instanceof \Dvsa\GovUkSignInSdk\Token\AccessToken);
+    ): GovUkAccountUser
+    {
+        assert($token instanceof \Dvsa\GovUkAccount\Token\AccessToken);
 
         // If set, verify the claims for CoreIdentity
         $coreIdentityToken
             = $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY] ?? null;
-        if ( ! empty($coreIdentityToken)) {
+        if (!empty($coreIdentityToken)) {
             // Replace JWT with Validated Claim Array
             $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY]
                 = $this->validateCoreIdentityClaim(
@@ -456,8 +457,9 @@ class GovUkAccount extends AbstractProvider
      */
     public function validateCoreIdentityClaim(
         string $token,
-        array $idTokenClaims
-    ): array {
+        array  $idTokenClaims
+    ): array
+    {
         $claims = (array)JWT::decode(
             $token,
             $this->govUkSignInIdentityPublicKey
@@ -467,7 +469,7 @@ class GovUkAccount extends AbstractProvider
         if ($issuer !== $this->expectedCoreIdentityIssuer) {
             throw new InvalidTokenException(
                 'The issuer for CoreIdentityJWT is invalid: '
-                .$issuer.' (expecting '.$this->expectedCoreIdentityIssuer.')'
+                . $issuer . ' (expecting ' . $this->expectedCoreIdentityIssuer . ')'
             );
         }
 
@@ -475,7 +477,7 @@ class GovUkAccount extends AbstractProvider
         if ($subject !== $idTokenClaims['sub']) {
             throw new InvalidTokenException(
                 'The subject for CoreIdentityJWT is invalid and does not match the subject for the ID Token: '
-                .$subject.' (expecting '.$idTokenClaims['sub'].')'
+                . $subject . ' (expecting ' . $idTokenClaims['sub'] . ')'
             );
         }
 

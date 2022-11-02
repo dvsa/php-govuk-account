@@ -2,10 +2,10 @@
 
 namespace Provider;
 
-use Dvsa\GovUkSignInSdk\Exception\InvalidTokenException;
-use Dvsa\GovUkSignInSdk\Provider\GovUkAccount as GovUkAccountProvider;
-use Dvsa\GovUkSignInSdk\Provider\GovUkAccountUser;
-use Dvsa\GovUkSignInSdk\Token\AccessToken;
+use Dvsa\GovUkAccount\Exception\InvalidTokenException;
+use Dvsa\GovUkAccount\Provider\GovUkAccount as GovUkAccountProvider;
+use Dvsa\GovUkAccount\Provider\GovUkAccountUser;
+use Dvsa\GovUkAccount\Token\AccessToken;
 use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWT;
 use GuzzleHttp\ClientInterface;
@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 use Mockery as m;
 use Psr\Cache\CacheItemPoolInterface;
 
-class GovUkSignInTest extends TestCase
+class GovUkAccountTest extends TestCase
 {
     // Generated ES256 (P256) (SHA256) keys for unit tests
     const CLIENT_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSU1MWXlXcjZnRDRjTzRhRU40emRKZWo2eXp0UwpQWHdLUTRjcWM0YmcvZ2hZY1FFeS9PcnFoV3VNNzJvL3NaaFB6ZXo1Tjk5cjhxVzlrRWdKTk4wMlJnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t';
