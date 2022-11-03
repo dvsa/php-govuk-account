@@ -236,7 +236,6 @@ class GovUkAccount extends AbstractProvider
         if ($this->cache instanceof CacheItemPoolInterface) {
             $httpClient = $this->getHttpClient();
             assert($httpClient instanceof ClientInterface);
-
             return new CachedKeySet(
                 $jwksUrl,
                 $httpClient,
