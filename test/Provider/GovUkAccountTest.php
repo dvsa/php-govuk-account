@@ -202,7 +202,7 @@ class GovUkAccountTest extends TestCase
             'code' => 'test-code',
         ]);
 
-        $this->assertInstanceOf(\Dvsa\GovUkSignInSdk\Token\AccessToken::class, $token);
+        $this->assertInstanceOf(\Dvsa\GovUkAccount\Token\AccessToken::class, $token);
     }
 
     /**
