@@ -60,6 +60,7 @@ class GovUkAccount extends AbstractProvider
         $this->cache = $cache;
         $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
 
+        // @codingStandardsIgnoreLine
         // TODO: Remove when key is available in .well-known/jwks.json
         $this->govUkSignInIdentityPublicKey = $this->parseIdentityAssuranceKey($options['keys']['identity_assurance_public_key']);
     }
