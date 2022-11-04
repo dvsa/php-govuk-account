@@ -316,7 +316,7 @@ class GovUkAccount extends AbstractProvider
         $expiresAt = $issuedAt->modify($expiryDelta);
 
         if (!$expiresAt instanceof DateTimeImmutable) {
-            throw new \InvalidArgumentException("Could not create expiresAt using a delta on issuedAt.");
+            throw new \InvalidArgumentException('Could not create expiresAt using a delta on issuedAt.');
         }
 
         $token = [
