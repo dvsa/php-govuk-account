@@ -16,13 +16,13 @@
     <issueHandlers>
         <PropertyNotSetInConstructor>
             <errorLevel type="suppress">
-                <file name="src/Provider/GovUKAccount.php" />
+                <file name="src/Provider/GovUkAccount.php" />
                 <file name="src/Token/AccessToken.php" />
             </errorLevel>
         </PropertyNotSetInConstructor>
         <RedundantPropertyInitializationCheck>
             <errorLevel type="suppress">
-                <file name="src/Provider/GovUKAccount.php" />
+                <file name="src/Provider/GovUkAccount.php" />
             </errorLevel>
         </RedundantPropertyInitializationCheck>
     </issueHandlers>
