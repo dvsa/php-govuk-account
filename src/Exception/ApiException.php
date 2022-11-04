@@ -13,8 +13,7 @@ class ApiException extends GovUkAccountException
         int       $code = 0,
         Throwable $previous = null,
         array     $data = []
-    )
-    {
+    ) {
         $this->data = $data;
         parent::__construct($message, $code, $previous);
     }

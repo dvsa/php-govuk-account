@@ -49,8 +49,7 @@ class GovUkAccount extends AbstractProvider
         array                  $options = [],
         array                  $collaborators = [],
         CacheItemPoolInterface $cache = null
-    )
-    {
+    ) {
         parent::__construct($options, $collaborators);
 
         $this->clientId = $options['client_id'];
@@ -62,10 +61,7 @@ class GovUkAccount extends AbstractProvider
         $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
 
         // TODO: Remove when key is available in .well-known/jwks.json
-        $this->govUkSignInIdentityPublicKey
-            = $this->parseIdentityAssuranceKey(
-            $options['keys']['identity_assurance_public_key']
-        );
+        $this->govUkSignInIdentityPublicKey = $this->parseIdentityAssuranceKey($options['keys']['identity_assurance_public_key']);
     }
 
     /**
@@ -148,7 +144,9 @@ class GovUkAccount extends AbstractProvider
         if ($response->getStatusCode() !== 200) {
             throw new ApiException(
                 'Error loading OpenID Connect Configuration',
-                $response->getStatusCode(), null, [$response]
+                $response->getStatusCode(),
+                null,
+                [$response]
             );
         }
 
@@ -218,10 +216,7 @@ class GovUkAccount extends AbstractProvider
     protected function getGovUkSignInPublicKeys(): ArrayAccess
     {
         if (!isset($this->govUkSignInPublicKeys)) {
-            $this->govUkSignInPublicKeys
-                = $this->loadJwks(
-                $this->getOpenIdConnectConfiguration('jwks_uri')
-            );
+            $this->govUkSignInPublicKeys = $this->loadJwks($this->getOpenIdConnectConfiguration('jwks_uri'));
         }
 
         return $this->govUkSignInPublicKeys;
@@ -248,7 +243,9 @@ class GovUkAccount extends AbstractProvider
         if ($response->getStatusCode() !== 200) {
             throw new ApiException(
                 'Error loading JWKs',
-                $response->getStatusCode(), null, [$response]
+                $response->getStatusCode(),
+                null,
+                [$response]
             );
         }
 
@@ -311,8 +308,7 @@ class GovUkAccount extends AbstractProvider
     public function getAccessToken(
         $grant,
         array $options = []
-    ): \Dvsa\GovUkAccount\Token\AccessToken
-    {
+    ): \Dvsa\GovUkAccount\Token\AccessToken {
         $issuedAt = new DateTimeImmutable();
         $expiryDelta = $options['access_token_expiry_delta'] ??
             static::DEFAULT_ACCESS_TOKEN_EXPIRY;
@@ -413,7 +409,9 @@ class GovUkAccount extends AbstractProvider
         if ($response->getStatusCode() !== 200) {
             throw new ApiException(
                 'Request returned non-200 status code',
-                $response->getStatusCode(), null, [$response, $data]
+                $response->getStatusCode(),
+                null,
+                [$response, $data]
             );
         }
     }
@@ -421,8 +419,7 @@ class GovUkAccount extends AbstractProvider
     protected function createAccessToken(
         array         $response,
         AbstractGrant $grant
-    ): \Dvsa\GovUkAccount\Token\AccessToken
-    {
+    ): \Dvsa\GovUkAccount\Token\AccessToken {
         return new \Dvsa\GovUkAccount\Token\AccessToken($response, $this);
     }
 
@@ -432,17 +429,14 @@ class GovUkAccount extends AbstractProvider
     protected function createResourceOwner(
         array       $response,
         AccessToken $token
-    ): GovUkAccountUser
-    {
+    ): GovUkAccountUser {
         assert($token instanceof \Dvsa\GovUkAccount\Token\AccessToken);
 
         // If set, verify the claims for CoreIdentity
-        $coreIdentityToken
-            = $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY] ?? null;
+        $coreIdentityToken = $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY] ?? null;
         if (!empty($coreIdentityToken)) {
             // Replace JWT with Validated Claim Array
-            $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY]
-                = $this->validateCoreIdentityClaim(
+            $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY] = $this->validateCoreIdentityClaim(
                 $coreIdentityToken,
                 $token->getIdTokenClaims()
             );
@@ -457,8 +451,7 @@ class GovUkAccount extends AbstractProvider
     public function validateCoreIdentityClaim(
         string $token,
         array  $idTokenClaims
-    ): array
-    {
+    ): array {
         $claims = (array)JWT::decode(
             $token,
             $this->govUkSignInIdentityPublicKey
