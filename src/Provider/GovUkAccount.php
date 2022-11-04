@@ -36,7 +36,7 @@ class GovUkAccount extends AbstractProvider
     protected string $expectedCoreIdentityIssuer;
 
     protected string $openIdConnectConfigurationUrl;
-    protected array $openIdConnectConfiguration;
+    protected ?array $openIdConnectConfiguration;
 
     protected ?ArrayAccess $govUkSignInPublicKeys;
     protected Key $govUkSignInIdentityPublicKey;
@@ -313,6 +313,10 @@ class GovUkAccount extends AbstractProvider
         $expiryDelta = $options['access_token_expiry_delta'] ??
             static::DEFAULT_ACCESS_TOKEN_EXPIRY;
         $expiresAt = $issuedAt->modify($expiryDelta);
+
+        if (!$expiresAt) {
+            throw new \InvalidArgumentException("Could not create expiresAt using a delta on issuedAt.");
+        }
 
         $token = [
             'aud' => $this->getAccessTokenUrl([]),

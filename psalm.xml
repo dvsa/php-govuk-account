@@ -13,4 +13,17 @@
             <directory name="vendor" />
         </ignoreFiles>
     </projectFiles>
+    <issueHandlers>
+        <PropertyNotSetInConstructor>
+            <errorLevel type="suppress">
+                <file name="src/Provider/GovUKAccount.php" />
+                <file name="src/Token/AccessToken.php" />
+            </errorLevel>
+        </PropertyNotSetInConstructor>
+        <RedundantPropertyInitializationCheck>
+            <errorLevel type="suppress">
+                <file name="src/Provider/GovUKAccount.php" />
+            </errorLevel>
+        </RedundantPropertyInitializationCheck>
+    </issueHandlers>
 </psalm>
