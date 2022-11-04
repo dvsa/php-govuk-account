@@ -9,7 +9,7 @@ class ApiException extends GovUkAccountException
     public array $data;
 
     public function __construct(
-        string    $message = "",
+        string    $message = '',
         int       $code = 0,
         Throwable $previous = null,
         array     $data = []
