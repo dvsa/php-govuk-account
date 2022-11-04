@@ -81,7 +81,7 @@ class GovUkAccount extends AbstractProvider
         $key = JWK::parseKey($jwk);
         if (empty($key)) {
             throw new InvalidArgumentException(
-                "Unable to create KEY object from identity_assurance_public_key"
+                'Unable to create KEY object from identity_assurance_public_key'
             );
         }
 
