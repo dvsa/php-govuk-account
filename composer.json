@@ -48,8 +48,5 @@
     "allow-plugins": {
       "bamarni/composer-bin-plugin": true
     }
-  },
-  "replace": {
-    "paragonie/random_compat": "9.99.99"
   }
 }
