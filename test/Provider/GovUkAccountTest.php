@@ -357,7 +357,7 @@ class GovUkAccountTest extends TestCase
         $this->assertInstanceOf(GovUkAccountUser::class, $userInfo);
         $this->assertIsArray($userInfo->getField('test'));
         $this->assertArrayHasKey('testProp', $userInfo->getField('test'));
-        $this->assertEquals('testValue' ,$userInfo->getField('test')['testProp']);
+        $this->assertEquals('testValue', $userInfo->getField('test')['testProp']);
         $this->assertEquals('test-subject', $userInfo->getField('sub'));
         $this->assertEquals('test-subject', $userInfo->getId(), "getID does not return subject");
     }
