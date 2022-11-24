@@ -451,7 +451,7 @@ class GovUkAccount extends AbstractProvider
         if (!$encoded) {
             throw new \JsonException('Could not encode $response');
         }
-        $response = json_decode(json_encode($encoded), true);
+        $response = json_decode($encoded, true);
 
         return new GovUkAccountUser($response);
     }
