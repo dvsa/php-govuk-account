@@ -8,6 +8,7 @@ use League\OAuth2\Client\Provider\ResourceOwnerInterface;
 class GovUkAccountUser implements ResourceOwnerInterface, JsonSerializable
 {
     public const KEY_CLAIMS_CORE_IDENTITY = 'https://vocab.account.gov.uk/v1/coreIdentityJWT';
+    public const KEY_CLAIMS_CORE_IDENTITY_DECODED = 'https://vocab.account.gov.uk/v1/coreIdentityDecoded';
 
     protected array $data = [];
 

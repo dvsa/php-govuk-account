@@ -441,7 +441,7 @@ class GovUkAccount extends AbstractProvider
         $coreIdentityToken = $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY] ?? null;
         if (!empty($coreIdentityToken)) {
             // Replace JWT with Validated Claim Array
-            $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY] = $this->validateCoreIdentityClaim(
+            $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY_DECODED] = $this->validateCoreIdentityClaim(
                 $coreIdentityToken,
                 $token->getIdTokenClaims()
             );
