@@ -447,6 +447,12 @@ class GovUkAccount extends AbstractProvider
             );
         }
 
+        $encoded = json_encode($response);
+        if (!$encoded) {
+            throw new \JsonException('Could not encode $response');
+        }
+        $response = json_decode($encoded, true);
+
         return new GovUkAccountUser($response);
     }
 
