@@ -446,7 +446,12 @@ class GovUkAccount extends AbstractProvider
                 $token->getIdTokenClaims()
             );
         }
-        $response = json_decode(json_encode($response), true);
+
+        $encoded = json_encode($response);
+        if (!$encoded) {
+            throw new \JsonException('Could not encode $response');
+        }
+        $response = json_decode(json_encode($encoded), true);
 
         return new GovUkAccountUser($response);
     }
