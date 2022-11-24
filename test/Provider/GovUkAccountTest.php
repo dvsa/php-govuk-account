@@ -333,6 +333,35 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals('test-subject', $userInfo->getId(), "getID does not return subject");
     }
 
+    public function testGetResourceOwnerStdClassReturnedAsArray(): void
+    {
+        $provider = $this->getProvider();
+
+        $obj = new \stdClass();
+        $obj->testProp = 'testValue';
+
+        $this->httpClient
+            ->expects('send')
+            ->once()
+            ->andReturn(new Response(200, [], json_encode([
+                'sub' => 'test-subject',
+                'test' => $obj
+            ])));
+
+        $token = new AccessToken([
+            'access_token' => $this->createAccessToken(),
+            'id_token' => $this->createIdToken($provider->setNonce())
+        ], $provider);
+
+        $userInfo = $provider->getResourceOwner($token);
+        $this->assertInstanceOf(GovUkAccountUser::class, $userInfo);
+        $this->assertIsArray($userInfo->getField('test'));
+        $this->assertArrayHasKey('testProp', $userInfo->getField('test'));
+        $this->assertEquals('testValue' ,$userInfo->getField('test')['testProp']);
+        $this->assertEquals('test-subject', $userInfo->getField('sub'));
+        $this->assertEquals('test-subject', $userInfo->getId(), "getID does not return subject");
+    }
+
     /**
      * @dataProvider dataProviderValidateCoreIdentityToken
      */
