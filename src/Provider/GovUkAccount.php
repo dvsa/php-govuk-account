@@ -75,7 +75,7 @@ class GovUkAccount extends AbstractProvider
     private function parseIdentityAssuranceKey($jwk): Key
     {
         if (!is_array($jwk)) {
-            $jwk = json_decode($jwk);
+            $jwk = json_decode($jwk, true);
         }
 
         $key = JWK::parseKey($jwk);

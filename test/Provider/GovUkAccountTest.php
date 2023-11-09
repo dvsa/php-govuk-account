@@ -103,6 +103,23 @@ class GovUkAccountTest extends TestCase
     }
 
     /**
+     * @doesNotPerformAssertions
+     */
+    public function testStringIdentityAssurancePublicKey(): void
+    {
+        $options = [
+            'keys' => [
+                'algorithm' => 'RS256',
+                'private_key' => static::CLIENT_PRIVATE_KEY,
+                'identity_assurance_public_key' => json_encode(static::SERVICE_PUBLIC_KEY_JWK['keys'][1]),
+            ]
+        ];
+
+        // The logic that is being tested happens in the `__construct` method - `parseIdentityAssuranceKey`.
+        $this->getProvider($options);
+    }
+
+    /**
      * @dataProvider dataProviderSetGetNonce
      */
     public function testSetGetNonce(?string $value): void
