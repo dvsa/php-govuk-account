@@ -41,23 +41,20 @@ class GovUkAccount extends AbstractProvider
     protected ?ArrayAccess $govUkSignInPublicKeys;
     protected Key $govUkSignInIdentityPublicKey;
 
-    protected ?CacheItemPoolInterface $cache = null;
-
     use BearerAuthorizationTrait;
 
     public function __construct(
         array                  $options = [],
         array                  $collaborators = [],
-        CacheItemPoolInterface $cache = null
+        protected ?CacheItemPoolInterface $cache = null
     ) {
         parent::__construct($options, $collaborators);
 
         $this->clientId = $options['client_id'];
         $this->algorithm = $options['keys']['algorithm'];
-        $this->privateKey = base64_decode($options['keys']['private_key']);
+        $this->privateKey = base64_decode((string) $options['keys']['private_key']);
         $this->loggedInUrl = $this->redirectUri = $options['redirect_uri']['logged_in'];
         $this->expectedCoreIdentityIssuer = $options['expected_core_identity_issuer'];
-        $this->cache = $cache;
         $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
 
         // @codingStandardsIgnoreLine

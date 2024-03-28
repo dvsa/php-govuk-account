@@ -440,7 +440,7 @@ class GovUkAccountTest extends TestCase
             'client_id' => 'mock_client_id',
             'exp' => (new \DateTimeImmutable())->getTimestamp() + 3600,
             'iat' => (new \DateTimeImmutable())->getTimestamp() - 10,
-        ], $payload), base64_decode(static::SERVICE_PRIVATE_KEY), 'ES256', 'N-NegtAr3bnZC4d2Pcav2sH5UNOp5tpbXg8phQl4Tyg');
+        ], $payload), base64_decode((string) static::SERVICE_PRIVATE_KEY), 'ES256', 'N-NegtAr3bnZC4d2Pcav2sH5UNOp5tpbXg8phQl4Tyg');
     }
 
     protected function createIdToken(string $nonce, array $payload = []): string
@@ -452,7 +452,7 @@ class GovUkAccountTest extends TestCase
             'aud' => 'mock_client_id',
             'exp' => (new \DateTimeImmutable())->getTimestamp() + 3600,
             'iat' => (new \DateTimeImmutable())->getTimestamp() - 10,
-        ], $payload), base64_decode(static::SERVICE_PRIVATE_KEY), 'ES256', 'N-NegtAr3bnZC4d2Pcav2sH5UNOp5tpbXg8phQl4Tyg');
+        ], $payload), base64_decode((string) static::SERVICE_PRIVATE_KEY), 'ES256', 'N-NegtAr3bnZC4d2Pcav2sH5UNOp5tpbXg8phQl4Tyg');
     }
 
     protected function createRefreshToken(array $payload = []): string
@@ -466,7 +466,7 @@ class GovUkAccountTest extends TestCase
             ],
             'exp' => (new \DateTimeImmutable())->getTimestamp() + 9000,
             'iat' => (new \DateTimeImmutable())->getTimestamp() - 10,
-        ], $payload), base64_decode(static::SERVICE_PRIVATE_KEY), 'ES256', 'N-NegtAr3bnZC4d2Pcav2sH5UNOp5tpbXg8phQl4Tyg');
+        ], $payload), base64_decode((string) static::SERVICE_PRIVATE_KEY), 'ES256', 'N-NegtAr3bnZC4d2Pcav2sH5UNOp5tpbXg8phQl4Tyg');
     }
 
     protected function createCoreIdentityToken(array $payload = []): string
@@ -476,6 +476,6 @@ class GovUkAccountTest extends TestCase
             'iss' => 'oidc.example',
             'exp' => (new \DateTimeImmutable())->getTimestamp() + 9000,
             'iat' => (new \DateTimeImmutable())->getTimestamp() - 10,
-        ], $payload), base64_decode(static::SERVICE_CORE_IDENTITY_CLAIM_PRIVATE_KEY), 'ES256');
+        ], $payload), base64_decode((string) static::SERVICE_CORE_IDENTITY_CLAIM_PRIVATE_KEY), 'ES256');
     }
 }
