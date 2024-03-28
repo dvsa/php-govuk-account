@@ -15,6 +15,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\HttpFactory;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
+use LanguageServerProtocol\PackageDescriptor;
 use League\OAuth2\Client\Grant\AbstractGrant;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Token\AccessToken;
@@ -41,23 +42,20 @@ class GovUkAccount extends AbstractProvider
     protected ?ArrayAccess $govUkSignInPublicKeys;
     protected Key $govUkSignInIdentityPublicKey;
 
-    protected ?CacheItemPoolInterface $cache = null;
-
     use BearerAuthorizationTrait;
 
     public function __construct(
         array                  $options = [],
         array                  $collaborators = [],
-        CacheItemPoolInterface $cache = null
+        protected ?CacheItemPoolInterface $cache = null
     ) {
         parent::__construct($options, $collaborators);
 
         $this->clientId = $options['client_id'];
         $this->algorithm = $options['keys']['algorithm'];
-        $this->privateKey = base64_decode($options['keys']['private_key']);
+        $this->privateKey = base64_decode((string) $options['keys']['private_key']);
         $this->loggedInUrl = $this->redirectUri = $options['redirect_uri']['logged_in'];
         $this->expectedCoreIdentityIssuer = $options['expected_core_identity_issuer'];
-        $this->cache = $cache;
         $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
 
         // @codingStandardsIgnoreLine
@@ -76,6 +74,11 @@ class GovUkAccount extends AbstractProvider
     {
         if (!is_array($jwk)) {
             $jwk = json_decode($jwk, true);
+            if(!is_array($jwk)) {
+                throw new InvalidArgumentException(
+                    'Unable to parse identity_assurance_public_key as JSON'
+                );
+            }
         }
 
         $key = JWK::parseKey($jwk);
@@ -113,11 +116,12 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
-     * @return mixed
+     * @param string $key
+     * @return string
      * @throws ApiException
      * @throws GuzzleException
      */
-    protected function getOpenIdConnectConfiguration(string $key)
+    protected function getOpenIdConnectConfiguration(string $key): string
     {
         if (!isset($this->openIdConnectConfiguration)) {
             $this->openIdConnectConfiguration = $this->loadOpenIdConnectConfiguration();
@@ -429,7 +433,7 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
-     * @throws InvalidTokenException
+     * @throws InvalidTokenException|\JsonException
      */
     protected function createResourceOwner(
         array       $response,
@@ -451,7 +455,11 @@ class GovUkAccount extends AbstractProvider
         if (!$encoded) {
             throw new \JsonException('Could not encode $response');
         }
+
         $response = json_decode($encoded, true);
+        if(!is_array($response)) {
+            throw new \JsonException('Could not decode $response');
+        }
 
         return new GovUkAccountUser($response);
     }
