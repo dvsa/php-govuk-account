@@ -15,7 +15,6 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\HttpFactory;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
-use LanguageServerProtocol\PackageDescriptor;
 use League\OAuth2\Client\Grant\AbstractGrant;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Token\AccessToken;
