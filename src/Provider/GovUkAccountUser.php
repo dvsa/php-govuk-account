@@ -10,11 +10,8 @@ class GovUkAccountUser implements ResourceOwnerInterface, JsonSerializable
     public const KEY_CLAIMS_CORE_IDENTITY = 'https://vocab.account.gov.uk/v1/coreIdentityJWT';
     public const KEY_CLAIMS_CORE_IDENTITY_DECODED = 'https://vocab.account.gov.uk/v1/coreIdentityDecoded';
 
-    protected array $data = [];
-
-    public function __construct(array $data)
+    public function __construct(protected array $data)
     {
-        $this->data = $data;
     }
 
     public function getId()
@@ -24,8 +21,6 @@ class GovUkAccountUser implements ResourceOwnerInterface, JsonSerializable
     }
 
     /**
-     * @param string $key
-     *
      * @return mixed|null
      */
     public function getField(string $key)
@@ -33,7 +28,7 @@ class GovUkAccountUser implements ResourceOwnerInterface, JsonSerializable
         return $this->data[$key] ?? null;
     }
 
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return $this->toArray();
     }
