@@ -74,7 +74,7 @@ class GovUkAccount extends AbstractProvider
     {
         if (!is_array($jwk)) {
             $jwk = json_decode($jwk, true);
-            if(!is_array($jwk)) {
+            if (!is_array($jwk)) {
                 throw new InvalidArgumentException(
                     'Unable to parse identity_assurance_public_key as JSON'
                 );
@@ -457,7 +457,7 @@ class GovUkAccount extends AbstractProvider
         }
 
         $response = json_decode($encoded, true);
-        if(!is_array($response)) {
+        if (!is_array($response)) {
             throw new \JsonException('Could not decode $response');
         }
 
