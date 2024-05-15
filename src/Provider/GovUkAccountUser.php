@@ -28,7 +28,7 @@ class GovUkAccountUser implements ResourceOwnerInterface, JsonSerializable
         return $this->data[$key] ?? null;
     }
 
-    public function jsonSerialize(): array
+    public function jsonSerialize(): mixed
     {
         return $this->toArray();
     }
