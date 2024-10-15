@@ -39,10 +39,13 @@ class GovUkAccount extends AbstractProvider
     protected ?array $openIdConnectConfiguration;
 
     protected ?ArrayAccess $govUkSignInPublicKeys;
-    protected Key $govUkSignInIdentityPublicKey;
+    protected array $coreIdentityDidDocumentUrl;
 
     use BearerAuthorizationTrait;
 
+    /**
+     * @throws ApiException
+     */
     public function __construct(
         array                  $options = [],
         array                  $collaborators = [],
@@ -56,38 +59,49 @@ class GovUkAccount extends AbstractProvider
         $this->loggedInUrl = $this->redirectUri = $options['redirect_uri']['logged_in'];
         $this->expectedCoreIdentityIssuer = $options['expected_core_identity_issuer'];
         $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
-
-        // @codingStandardsIgnoreLine
-        // TODO: Remove when key is available in .well-known/jwks.json
-        $this->govUkSignInIdentityPublicKey = $this->parseIdentityAssuranceKey($options['keys']['identity_assurance_public_key']);
+        $this->coreIdentityDidDocumentUrl = $this->getCoreIdentityDidDocument($options['core_identity_did_document_url']);
     }
 
     /**
-     * Parses a JWK in array format, returning a Key object or throwing an exception.
-     *
-     * @param array|string $jwk JWK - Will attempt to parse string as JSON.
-     *
-     * @return Key
+     * @return Key[]
+     * @throws ApiException|\Psr\Cache\InvalidArgumentException
      */
-    private function parseIdentityAssuranceKey($jwk): Key
+    private function getCoreIdentityDidDocument(string $url): array
     {
-        if (!is_array($jwk)) {
-            $jwk = json_decode($jwk, true);
-            if (!is_array($jwk)) {
-                throw new InvalidArgumentException(
-                    'Unable to parse identity_assurance_public_key as JSON'
-                );
-            }
+        $cacheKey = 'core_identity_did_document_' . md5($url);
+        $cacheItem = $this->cache?->getItem($cacheKey);
+
+        if ($cacheItem && $cacheItem->isHit()) {
+            return $cacheItem->get();
         }
 
-        $key = JWK::parseKey($jwk);
-        if (empty($key)) {
-            throw new InvalidArgumentException(
-                'Unable to create KEY object from identity_assurance_public_key'
+        try {
+            $response = $this->getHttpClient()->request('GET', $url);
+        } catch (GuzzleException $e) {
+            throw new ApiException(
+                'Error loading Core Identity DID Document',
+                $e->getCode(),
+                $e
             );
         }
 
-        return $key;
+        $parsed = $this->parseResponse($response);
+
+        $assertionMethods = [];
+        foreach ($parsed['assertionMethods'] as $method) {
+            $assertionMethods[] = new Key(
+                $method['publicKeyJwk'],
+                $method['algorithm']
+            );
+        }
+
+        if ($this->cache instanceof CacheItemPoolInterface) {
+            $cacheItem->set($assertionMethods);
+            $cacheItem->expiresAfter(time() + 3600);
+            $this->cache->save($cacheItem);
+        }
+
+        return $assertionMethods;
     }
 
     /**
@@ -472,7 +486,7 @@ class GovUkAccount extends AbstractProvider
     ): array {
         $claims = (array)JWT::decode(
             $token,
-            $this->govUkSignInIdentityPublicKey
+            $this->coreIdentityDidDocumentUrl
         );
 
         $issuer = $claims['iss'] ?? null;
