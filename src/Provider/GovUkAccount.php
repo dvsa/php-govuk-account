@@ -224,15 +224,6 @@ class GovUkAccount extends AbstractProvider
      */
     public function loadJwks(string $jwksUrl): ArrayAccess
     {
-        if ($this->cache instanceof CacheItemPoolInterface) {
-            return new CachedKeySet(
-                $jwksUrl,
-                $this->getHttpClient(),
-                new HttpFactory(),
-                $this->cache
-            );
-        }
-
         try {
             $response = $this->cachedHttpClientWrapper->sendGetRequest(url: $jwksUrl, cacheTtlSeconds: 3600);
         } catch (GuzzleException $e) {
