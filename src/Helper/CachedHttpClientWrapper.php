@@ -8,6 +8,7 @@ use JsonException;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
+use Throwable;
 
 class CachedHttpClientWrapper
 {
@@ -25,7 +26,7 @@ class CachedHttpClientWrapper
 
     /**
      * @throws GuzzleException
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException&Throwable
      * @throws JsonException
      */
     public function sendGetRequest(string $url, array $options = [], int $cacheTtlSeconds = self::DEFAULT_CACHE_TTL_SECONDS): array
