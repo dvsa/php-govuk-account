@@ -26,7 +26,7 @@ class CachedHttpClientWrapper
 
     /**
      * @throws GuzzleException
-     * @throws InvalidArgumentException&Throwable
+     * @throws InvalidArgumentException
      * @throws JsonException
      */
     public function sendGetRequest(string $url, array $options = [], int $cacheTtlSeconds = self::DEFAULT_CACHE_TTL_SECONDS): array
