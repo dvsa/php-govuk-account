@@ -98,8 +98,7 @@ class GovUkAccountTest extends TestCase
                             'publicKeyJwk' => static::SERVICE_PUBLIC_KEY_JWK['keys'][1],
                         ],
                     ],
-                ]))
-            )
+                ])))
             ->byDefault();
 
         $provider->setHttpClient($this->httpClient);

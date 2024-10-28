@@ -38,7 +38,7 @@ class DidDocumentParser
 
         $keys = [];
 
-        if(!isset($didDocument['assertionMethod'])) {
+        if (!isset($didDocument['assertionMethod'])) {
             throw new \InvalidArgumentException('DID document has no assertion method');
         }
 

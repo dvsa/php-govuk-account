@@ -25,5 +25,10 @@
                 <file name="src/Provider/GovUkAccount.php" />
             </errorLevel>
         </RedundantPropertyInitializationCheck>
+        <InvalidThrow>
+            <errorLevel type="suppress">
+                <referencedClass name="Psr\Cache\InvalidArgumentException" />
+            </errorLevel>
+        </InvalidThrow>
     </issueHandlers>
 </psalm>

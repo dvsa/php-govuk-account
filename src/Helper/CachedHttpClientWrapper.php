@@ -4,6 +4,7 @@ namespace Dvsa\GovUkAccount\Helper;
 
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
+use JsonException;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
@@ -25,7 +26,7 @@ class CachedHttpClientWrapper
     /**
      * @throws GuzzleException
      * @throws InvalidArgumentException
-     * @throws \JsonException
+     * @throws JsonException
      */
     public function sendGetRequest(string $url, array $options = [], int $cacheTtlSeconds = self::DEFAULT_CACHE_TTL_SECONDS): array
     {
@@ -40,7 +41,7 @@ class CachedHttpClientWrapper
 
         $parsedResponse = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
 
-        if ($this->cache instanceof CacheItemPoolInterface) {
+        if ($this->cache instanceof CacheItemPoolInterface && $cacheItem) {
             $cacheItem->expiresAfter($cacheTtlSeconds);
             $cacheItem->set(serialize($parsedResponse));
             $this->cache->save($cacheItem);
