@@ -1,6 +1,6 @@
 <?php
 
-namespace Dvsa\GovUkAccount\Provider;
+namespace Dvsa\GovUkAccount\Token;
 
 use JsonSerializable;
 use League\OAuth2\Client\Provider\ResourceOwnerInterface;

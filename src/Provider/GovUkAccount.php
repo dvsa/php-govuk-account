@@ -6,11 +6,15 @@ use ArrayAccess;
 use DateTimeImmutable;
 use Dvsa\GovUkAccount\Exception\ApiException;
 use Dvsa\GovUkAccount\Exception\InvalidTokenException;
+use Dvsa\GovUkAccount\Helper\CachedHttpClientWrapper;
+use Dvsa\GovUkAccount\Helper\DidDocumentParser;
+use Dvsa\GovUkAccount\Token\GovUkAccountUser;
 use Exception;
 use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use GuzzleHttp\ClientInterface as HttpClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\HttpFactory;
 use Illuminate\Support\Collection;
@@ -20,7 +24,6 @@ use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Tool\BearerAuthorizationTrait;
 use Psr\Cache\CacheItemPoolInterface;
-use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 
 class GovUkAccount extends AbstractProvider
@@ -39,12 +42,16 @@ class GovUkAccount extends AbstractProvider
     protected ?array $openIdConnectConfiguration;
 
     protected ?ArrayAccess $govUkSignInPublicKeys;
-    protected array $coreIdentityDidDocumentUrl;
+    protected string $core_identity_did_document_url;
+    protected array $coreIdentityPublicKeys;
+
+    protected CachedHttpClientWrapper $cachedHttpClientWrapper;
 
     use BearerAuthorizationTrait;
 
     /**
      * @throws ApiException
+     * @throws \Psr\Cache\InvalidArgumentException
      */
     public function __construct(
         array                  $options = [],
@@ -59,49 +66,30 @@ class GovUkAccount extends AbstractProvider
         $this->loggedInUrl = $this->redirectUri = $options['redirect_uri']['logged_in'];
         $this->expectedCoreIdentityIssuer = $options['expected_core_identity_issuer'];
         $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
-        $this->coreIdentityDidDocumentUrl = $this->getCoreIdentityDidDocument($options['core_identity_did_document_url']);
+        $this->core_identity_did_document_url = $options['core_identity_did_document_url'];
+    }
+
+    public function setHttpClient(HttpClientInterface $client): GovUkAccount|static
+    {
+        parent::setHttpClient($client);
+
+        $this->cachedHttpClientWrapper = new CachedHttpClientWrapper(
+            $this->getHttpClient(),
+            $this->cache
+        );
+
+        return $this;
     }
 
     /**
      * @return Key[]
-     * @throws ApiException|\Psr\Cache\InvalidArgumentException
+     * @throws GuzzleException
      */
-    private function getCoreIdentityDidDocument(string $url): array
+    private function parseDidDocument(string $url): array
     {
-        $cacheKey = 'core_identity_did_document_' . md5($url);
-        $cacheItem = $this->cache?->getItem($cacheKey);
+        $didDocument = $this->cachedHttpClientWrapper->sendGetRequest(url: $url, cacheTtlSeconds: 3600);
 
-        if ($cacheItem && $cacheItem->isHit()) {
-            return $cacheItem->get();
-        }
-
-        try {
-            $response = $this->getHttpClient()->request('GET', $url);
-        } catch (GuzzleException $e) {
-            throw new ApiException(
-                'Error loading Core Identity DID Document',
-                $e->getCode(),
-                $e
-            );
-        }
-
-        $parsed = $this->parseResponse($response);
-
-        $assertionMethods = [];
-        foreach ($parsed['assertionMethods'] as $method) {
-            $assertionMethods[] = new Key(
-                $method['publicKeyJwk'],
-                $method['algorithm']
-            );
-        }
-
-        if ($this->cache instanceof CacheItemPoolInterface) {
-            $cacheItem->set($assertionMethods);
-            $cacheItem->expiresAfter(time() + 3600);
-            $this->cache->save($cacheItem);
-        }
-
-        return $assertionMethods;
+        return DidDocumentParser::parseToKeyArray($didDocument);
     }
 
     /**
@@ -132,7 +120,6 @@ class GovUkAccount extends AbstractProvider
      * @param string $key
      * @return string
      * @throws ApiException
-     * @throws GuzzleException
      */
     protected function getOpenIdConnectConfiguration(string $key): string
     {
@@ -149,26 +136,17 @@ class GovUkAccount extends AbstractProvider
         return $this->openIdConnectConfiguration[$key];
     }
 
-    /**
-     * @throws ApiException
-     * @throws GuzzleException
-     */
     private function loadOpenIdConnectConfiguration(): array
     {
-        $response = $this->getHttpClient()->request(
-            'GET',
-            $this->openIdConnectConfigurationUrl
-        );
-        if ($response->getStatusCode() !== 200) {
+        try {
+            return $this->cachedHttpClientWrapper->sendGetRequest(url: $this->openIdConnectConfigurationUrl, cacheTtlSeconds: 3600);
+        } catch (GuzzleException $e) {
             throw new ApiException(
                 'Error loading OpenID Connect Configuration',
-                $response->getStatusCode(),
-                null,
-                [$response]
+                $e->getCode(),
+                $e
             );
         }
-
-        return $this->parseResponse($response);
     }
 
     public function getBaseAccessTokenUrl(array $params): string
@@ -247,29 +225,24 @@ class GovUkAccount extends AbstractProvider
     public function loadJwks(string $jwksUrl): ArrayAccess
     {
         if ($this->cache instanceof CacheItemPoolInterface) {
-            $httpClient = $this->getHttpClient();
-            assert($httpClient instanceof ClientInterface);
             return new CachedKeySet(
                 $jwksUrl,
-                $httpClient,
+                $this->getHttpClient(),
                 new HttpFactory(),
                 $this->cache
             );
         }
 
-        $response = $this->getHttpClient()->request('GET', $jwksUrl);
-        if ($response->getStatusCode() !== 200) {
+        try {
+            $response = $this->cachedHttpClientWrapper->sendGetRequest(url: $jwksUrl, cacheTtlSeconds: 3600);
+        } catch (GuzzleException $e) {
             throw new ApiException(
                 'Error loading JWKs',
-                $response->getStatusCode(),
-                null,
-                [$response]
+                $e->getCode(),
+                $e
             );
         }
-
-        $parsed = $this->parseResponse($response);
-
-        return new Collection(JWK::parseKeySet($parsed));
+        return new Collection(JWK::parseKeySet($response));
     }
 
     /**
@@ -484,25 +457,41 @@ class GovUkAccount extends AbstractProvider
         string $token,
         array  $idTokenClaims
     ): array {
+
+        $keys = $this->parseDidDocument(
+            $this->core_identity_did_document_url
+        );
+
         $claims = (array)JWT::decode(
             $token,
-            $this->coreIdentityDidDocumentUrl
+            $keys
         );
 
         $issuer = $claims['iss'] ?? null;
         if ($issuer !== $this->expectedCoreIdentityIssuer) {
-            throw new InvalidTokenException(
-                'The issuer for CoreIdentityJWT is invalid: '
-                . $issuer . ' (expecting ' . $this->expectedCoreIdentityIssuer . ')'
-            );
+            throw new InvalidTokenException(sprintf(
+                'The issuer (iss) for CoreIdentityJWT is invalid: %s (expecting %s)',
+                $issuer,
+                $this->expectedCoreIdentityIssuer
+            ));
+        }
+
+        $audience = $claims['aud'] ?? null;
+        if ($audience !== $this->clientId) {
+            throw new InvalidTokenException(sprintf(
+                'The audience (aud) for CoreIdentityJWT is invalid: %s (expecting %s)',
+                $audience,
+                $this->clientId
+            ));
         }
 
         $subject = $claims['sub'] ?? null;
         if ($subject !== $idTokenClaims['sub']) {
-            throw new InvalidTokenException(
-                'The subject for CoreIdentityJWT is invalid and does not match the subject for the ID Token: '
-                . $subject . ' (expecting ' . $idTokenClaims['sub'] . ')'
-            );
+            throw new InvalidTokenException(sprintf(
+                'The subject (sub) for CoreIdentityJWT is invalid and does not match the subject for the ID Token: %s (expecting %s)',
+                $subject,
+                $idTokenClaims['sub']
+            ));
         }
 
         return $claims;

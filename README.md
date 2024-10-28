@@ -2,7 +2,7 @@
 [league_oauth2_client]: https://oauth2-client.thephpleague.com/
 [govuk_account]: https://www.sign-in.service.gov.uk/
 
-GOV.UK Account (OAuth2 Provider)
+GOV.UK One Login (OAuth2 Provider)
 ===================================
 A provider (based on [PHP League OAuth2-Client][league_oauth2_client]) to interact with [GOV.UK Account][govuk_account].
 
@@ -24,17 +24,20 @@ You may want to refer to the documentation provided at [PHP League OAuth2-Client
 When instantiating the provider, the constructor accepts **additional** attributes defined in `array $options = []` which are specific for this provider; in addition to the default options provided by the AbstractProvider ([PHP League OAuth2-Client][league_oauth2_client]).
 
 ```php
+'base_uri' => 'https://oidc.integration.account.gov.uk', // Base URI for the GOV.UK One Login API 
 'discovery_endpoint' => 'https://oidc.integration.account.gov.uk/.well-known/openid-configuration', // Endpoint for OIDC discovery
-'client_id' => '', // Client ID issued by GOV.UK Account
+'core_identity_did_document_url' => 'https://identity.integration.account.gov.uk/.well-known/did.json', // The DID document URL used to verify the JWTCoreIdentity token from UserDetails endpoint
+'client_id' => '', // Client ID issued by GOV.UK One Login
 'keys' => [
-  'algorithm' => '', // Algorithm for private_key
-  'private_key' => '', // Private key used to encode assertion when obtaining access token (public key must be shared with GOV.UK Account)
-  'identity_assurance_public_key' => [], // THe public key used to verify the JWTCoreIdentity token from UserDetails endpoint (if initial flow included identity assurance)
+    'algorithm' => 'RS256', // Algorithm for private_key
+    'private_key' => '', // Private key used to encode assertion when obtaining access token (public key must be shared with GOV.UK One Login)
+    'public_key' => '', // Public key used to decode assertion when obtaining access token
 ],
 'redirect_uri' => [
-  'logged_in' => '', // The url used for redirection back to the service
+    'logged_in' => '', // The url used for redirection back to the service
+    'logged_out' => '', // The url used for redirection back to the service
 ],
-'expected_core_identity_issuer' => 'identity.integration.account.gov.uk', // Issuer for JWTCoreIdentity token
+'expected_core_identity_issuer' => 'https://identity.integration.account.gov.uk/', // Issuer for JWTCoreIdentity token
 ```
 
 Contributing
