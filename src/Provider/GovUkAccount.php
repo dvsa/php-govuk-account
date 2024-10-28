@@ -462,7 +462,7 @@ class GovUkAccount extends AbstractProvider
         if ($issuer !== $this->expectedCoreIdentityIssuer) {
             throw new InvalidTokenException(sprintf(
                 'The issuer (iss) for CoreIdentityJWT is invalid: %s (expecting %s)',
-                $issuer,
+                $issuer ?? 'null',
                 $this->expectedCoreIdentityIssuer
             ));
         }
@@ -471,7 +471,7 @@ class GovUkAccount extends AbstractProvider
         if ($audience !== $this->clientId) {
             throw new InvalidTokenException(sprintf(
                 'The audience (aud) for CoreIdentityJWT is invalid: %s (expecting %s)',
-                $audience,
+                $audience ?? 'null',
                 $this->clientId
             ));
         }
@@ -480,7 +480,7 @@ class GovUkAccount extends AbstractProvider
         if ($subject !== $idTokenClaims['sub']) {
             throw new InvalidTokenException(sprintf(
                 'The subject (sub) for CoreIdentityJWT is invalid and does not match the subject for the ID Token: %s (expecting %s)',
-                $subject,
+                $subject ?? 'null',
                 $idTokenClaims['sub']
             ));
         }
