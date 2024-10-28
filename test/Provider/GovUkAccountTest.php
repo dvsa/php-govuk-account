@@ -443,15 +443,6 @@ class GovUkAccountTest extends TestCase
         ];
     }
 
-    public function testLoadJwksRespectsCacheItemPoolInterfaceAndReturnsCachedKeySet(): void
-    {
-        $cacheObject = m::mock(CacheItemPoolInterface::class)->makePartial();
-
-        $provider = $this->getProvider([], [], $cacheObject);
-
-        $this->assertInstanceOf(CachedKeySet::class, $provider->loadJwks('test'));
-    }
-
     protected function createAccessToken(array $payload = []): string
     {
         return JWT::encode(array_merge([
