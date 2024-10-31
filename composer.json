@@ -1,6 +1,6 @@
 {
   "name": "dvsa/php-govuk-account",
-  "description": "A league/oauth2-client provider for GOV.UK Account",
+  "description": "A league/oauth2-client provider for GOV.UK One Login",
   "type": "library",
   "license": [
     "MIT"
@@ -14,6 +14,7 @@
   "keywords": [
     "govuk",
     "signin",
+    "onelogin",
     "sdk",
     "dvsa"
   ],

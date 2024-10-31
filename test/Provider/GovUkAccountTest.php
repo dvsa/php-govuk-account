@@ -3,15 +3,15 @@
 namespace Provider;
 
 use Dvsa\GovUkAccount\Exception\InvalidTokenException;
-use Dvsa\GovUkAccount\Provider\GovUkAccount as GovUkAccountProvider;
-use Dvsa\GovUkAccount\Provider\GovUkAccountUser;
+use Dvsa\GovUkAccount\Provider\GovUkAccount;
 use Dvsa\GovUkAccount\Token\AccessToken;
+use Dvsa\GovUkAccount\Token\GovUkAccountUser;
 use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWT;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7\Response;
-use PHPUnit\Framework\TestCase;
 use Mockery as m;
+use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 
 class GovUkAccountTest extends TestCase
@@ -19,7 +19,7 @@ class GovUkAccountTest extends TestCase
     // Generated ES256 (P256) (SHA256) keys for unit tests
     const CLIENT_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSU1MWXlXcjZnRDRjTzRhRU40emRKZWo2eXp0UwpQWHdLUTRjcWM0YmcvZ2hZY1FFeS9PcnFoV3VNNzJvL3NaaFB6ZXo1Tjk5cjhxVzlrRWdKTk4wMlJnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t';
     const CLIENT_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNCeXBGZk54Mk1jTWNiamtPcEgKT2IxdVlsNDRaOVJmWmE5MjYxUXc5dEZia1E9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
-    const SERVICE_PUBLIC_KEU = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGNxQkwrTUh2TWNldi8wWHI3ZFhvOXdQVFpqLwpuZnA1WGg0dnB4MXJneHdHVHpFbmxuQXFVOVkzdXN4Rml6a2g0VkdkVWc1S3JNSmpnd2NrWWVmdG9BPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==';
+    const SERVICE_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGNxQkwrTUh2TWNldi8wWHI3ZFhvOXdQVFpqLwpuZnA1WGg0dnB4MXJneHdHVHpFbmxuQXFVOVkzdXN4Rml6a2g0VkdkVWc1S3JNSmpnd2NrWWVmdG9BPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==';
     const SERVICE_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNETExrUlQ3UGVpaklERm02SEMKZGlYYXJmbjY0emxTNDhreXdJMWE1em1NMHc9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
     const SERVICE_CORE_IDENTITY_CLAIM_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSm1sbW92MmtYTHB4NVd2YzMxVHRIZGZjRktNYwp6dGliZHNraHFCL1lSSDEzV2dOOXBpTkVKRUJGS3JjZGQ5SEE4d1VEWDdsMjN5bFB4REVqZnRROXh3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t';
     const SERVICE_CORE_IDENTITY_CLAIM_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNDSkh1bHVwZ3Bqclo5MitaalUKZ1E5RmY4YVhxNkZIek1EeVJuejNHY1pjNGc9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
@@ -54,7 +54,7 @@ class GovUkAccountTest extends TestCase
         $this->httpClient = m::mock(ClientInterface::class, \Psr\Http\Client\ClientInterface::class);
     }
 
-    protected function getProvider(array $options = [], array $collaborators = [], CacheItemPoolInterface $cache = null): GovUkAccountProvider
+    protected function getProvider(array $options = [], array $collaborators = [], CacheItemPoolInterface $cache = null): GovUkAccount
     {
         $options = array_merge([
             'client_id' => 'mock_client_id',
@@ -64,26 +64,41 @@ class GovUkAccountTest extends TestCase
             'keys' => [
                 'algorithm' => 'RS256',
                 'private_key' => static::CLIENT_PRIVATE_KEY,
-                'identity_assurance_public_key' => static::SERVICE_PUBLIC_KEY_JWK['keys'][1],
             ],
+            'core_identity_did_document_url' => 'https://iodc.example/.well-known/did.json',
             'expected_core_identity_issuer' => 'oidc.example',
             'discovery_endpoint' => 'https://iodc.example/.well-known/openid-configuration',
         ], $options);
 
-        $provider = new GovUkAccountProvider($options, $collaborators, $cache);
+        $provider = new GovUkAccount($options, $collaborators, $cache);
 
         $this->httpClient
             ->expects('request')
             ->once()
-            ->withArgs(['GET', 'https://iodc.example/.well-known/openid-configuration'])
+            ->withArgs(['GET', 'https://iodc.example/.well-known/openid-configuration', []])
             ->andReturn(new Response(200, [], json_encode($this->getOpenIdConfiguration())))
             ->byDefault();
 
         $this->httpClient
             ->expects('request')
             ->once()
-            ->withArgs(['GET', 'https://oidc.example/.well-known/jwks.json'])
+            ->withArgs(['GET', 'https://oidc.example/.well-known/jwks.json', []])
             ->andReturn(new Response(200, [], json_encode(static::SERVICE_PUBLIC_KEY_JWK)))
+            ->byDefault();
+
+        $this->httpClient
+            ->expects('request')
+            ->once()
+            ->withArgs(['GET', 'https://iodc.example/.well-known/did.json', []])
+            ->andReturn(new Response(200, [], json_encode([
+                    'assertionMethod' => [
+                        [
+                            'id' => 'swfvlyjqVu0Budk52Fl95nN7jPWGJ1CHPdY-Q5itATc',
+                            'type' => 'JsonWebKey',
+                            'publicKeyJwk' => static::SERVICE_PUBLIC_KEY_JWK['keys'][1],
+                        ],
+                    ],
+                ])))
             ->byDefault();
 
         $provider->setHttpClient($this->httpClient);
@@ -392,8 +407,13 @@ class GovUkAccountTest extends TestCase
 
         $provider = $this->getProvider();
 
+        // Mock send, with request object with property path as /userinfo
+
         $this->httpClient
             ->expects('send')
+            ->with(m::on(function ($request) {
+                return $request->getUri()->getPath() === '/userinfo';
+            }))
             ->once()
             ->andReturn(new Response(200, [], json_encode([
                 'sub' => 'test-subject',
@@ -421,15 +441,6 @@ class GovUkAccountTest extends TestCase
                 'sub' => 'unknown-subject'
             ], true],
         ];
-    }
-
-    public function testLoadJwksRespectsCacheItemPoolInterfaceAndReturnsCachedKeySet(): void
-    {
-        $cacheObject = m::mock(CacheItemPoolInterface::class)->makePartial();
-
-        $provider = $this->getProvider([], [], $cacheObject);
-
-        $this->assertInstanceOf(CachedKeySet::class, $provider->loadJwks('test'));
     }
 
     protected function createAccessToken(array $payload = []): string
@@ -473,9 +484,10 @@ class GovUkAccountTest extends TestCase
     {
         return JWT::encode(array_merge([
             'sub' => 'test-sub',
+            'aud' => 'mock_client_id',
             'iss' => 'oidc.example',
             'exp' => (new \DateTimeImmutable())->getTimestamp() + 9000,
             'iat' => (new \DateTimeImmutable())->getTimestamp() - 10,
-        ], $payload), base64_decode(static::SERVICE_CORE_IDENTITY_CLAIM_PRIVATE_KEY), 'ES256');
+        ], $payload), base64_decode(static::SERVICE_CORE_IDENTITY_CLAIM_PRIVATE_KEY), 'ES256', 'swfvlyjqVu0Budk52Fl95nN7jPWGJ1CHPdY-Q5itATc');
     }
 }
