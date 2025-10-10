@@ -10,11 +10,10 @@ ignore:
   # Reason for ignoring:
   # 1. DISPUTED CVE - Issue contested by maintainers and under review
   # 2. Not a library bug - Key lengths are application responsibility 
-  # 3. Our implementation uses ES256 (ECDSA) with P-256 curves (256-bit keys)
-  # 4. Not affected by HMAC/RSA key length issues mentioned in CVE
-  # 5. Keys are controlled by trusted GOV.UK service and generated to sufficient quality
-  # 6. Keys used by DVSA to sign our JWTs are also of sufficient cryptographic quality
-  # 7. No fixed version available (and may not be needed)
+  # 3. We use strong cryptographic keys of sufficient length and quality
+  # 4. Keys are controlled by trusted GOV.UK service and generated to sufficient quality
+  # 5. Keys used by DVSA to sign our JWTs are also of sufficient cryptographic quality
+  # 6. No fixed version available (and may not be needed)
   #
   # Risk Assessment: LOW
   # - Vulnerability is disputed and may be invalid
@@ -29,10 +28,10 @@ ignore:
     - '*':
         reason: >
           Disputed CVE - Key lengths are application responsibility, not library.
-          Our implementation uses ES256 (ECDSA) which is not affected by 
-          HMAC/RSA key length issues. Keys are controlled by trusted GOV.UK service
-          and generated to sufficient cryptographic quality. Keys used by DVSA 
-          to sign our JWTs are also of sufficient cryptographic quality.
+          We use strong cryptographic keys of sufficient length and quality.
+          Keys are controlled by trusted GOV.UK service and generated to sufficient 
+          cryptographic quality. Keys used by DVSA to sign our JWTs are also of 
+          sufficient cryptographic quality.
         expires: '2026-05-01T00:00:00.000Z'
         created: '2025-10-10T17:56:45.000Z'
 
