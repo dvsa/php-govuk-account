@@ -1,0 +1,40 @@
+# Snyk ignore file
+# Documentation: https://docs.snyk.io/snyk-cli/test-for-vulnerabilities/the-.snyk-file
+
+version: v1.0.0
+
+ignore:
+  # CVE-2025-45769: firebase/php-jwt weak encryption (DISPUTED)
+  # Status: DISPUTED by MITRE - tagged as "disputed" under CNA review
+  # 
+  # Reason for ignoring:
+  # 1. DISPUTED CVE - Issue contested by maintainers and under review
+  # 2. Not a library bug - Key lengths are application responsibility 
+  # 3. Our implementation uses ES256 (ECDSA) with P-256 curves (256-bit keys)
+  # 4. Not affected by HMAC/RSA key length issues mentioned in CVE
+  # 5. Keys are controlled by trusted GOV.UK service and generated to sufficient quality
+  # 6. Keys used by DVSA to sign our JWTs are also of sufficient cryptographic quality
+  # 7. No fixed version available (and may not be needed)
+  #
+  # Risk Assessment: LOW
+  # - Vulnerability is disputed and may be invalid
+  # - Our specific use case (ES256/ECDSA) is not affected
+  # - Keys are from trusted government sources with proper cryptographic standards
+  #
+  # Monitoring: Will review when dispute is resolved or fix is available
+  # Last reviewed: 2025-10-10
+  # Next review: On or before expiry
+  #
+  SNYK-PHP-FIREBASEPHPJWT-11356865:
+    - '*':
+        reason: >
+          Disputed CVE - Key lengths are application responsibility, not library.
+          Our implementation uses ES256 (ECDSA) which is not affected by 
+          HMAC/RSA key length issues. Keys are controlled by trusted GOV.UK service
+          and generated to sufficient cryptographic quality. Keys used by DVSA 
+          to sign our JWTs are also of sufficient cryptographic quality.
+        expires: '2026-05-01T00:00:00.000Z'
+        created: '2025-10-10T17:56:45.000Z'
+
+# Patch section - currently no patches applied
+patch: {}
