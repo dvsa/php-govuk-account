@@ -5,9 +5,7 @@ namespace Helper;
 use Dvsa\GovUkAccount\Helper\DidDocumentParser;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Dvsa\GovUkAccount\Helper\DidDocumentParser
- */
+#[\PHPUnit\Framework\Attributes\CoversClass(\Dvsa\GovUkAccount\Helper\DidDocumentParser::class)]
 class DidDocumentParserTest extends TestCase
 {
     public function testParse()

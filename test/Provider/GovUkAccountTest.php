@@ -117,9 +117,7 @@ class GovUkAccountTest extends TestCase
         ], $result);
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testStringIdentityAssurancePublicKey(): void
     {
         $options = [
@@ -134,9 +132,7 @@ class GovUkAccountTest extends TestCase
         $this->getProvider($options);
     }
 
-    /**
-     * @dataProvider dataProviderSetGetNonce
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProviderSetGetNonce')]
     public function testSetGetNonce(?string $value): void
     {
         $provider = $this->getProvider();
@@ -164,9 +160,7 @@ class GovUkAccountTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProviderSetGetState
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProviderSetGetState')]
     public function testSetState(?string $value): void
     {
         $provider = $this->getProvider();
@@ -237,9 +231,7 @@ class GovUkAccountTest extends TestCase
         $this->assertInstanceOf(\Dvsa\GovUkAccount\Token\AccessToken::class, $token);
     }
 
-    /**
-     * @dataProvider dataProviderValidateAccessToken
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProviderValidateAccessToken')]
     public function testValidateAccessToken(array $accessTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -288,9 +280,7 @@ class GovUkAccountTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProviderValidateIdToken
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProviderValidateIdToken')]
     public function testValidateIdToken(array $idTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -394,9 +384,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals('test-subject', $userInfo->getId(), "getID does not return subject");
     }
 
-    /**
-     * @dataProvider dataProviderValidateCoreIdentityToken
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProviderValidateCoreIdentityToken')]
     public function testValidateCoreIdentityClaim(array $coreIdentityTokenPayload, bool $expectException): void
     {
         if ($expectException) {
