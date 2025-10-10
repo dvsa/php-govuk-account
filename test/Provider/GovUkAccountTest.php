@@ -152,7 +152,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals($nonce, $provider->getNonce());
     }
 
-    public function dataProviderSetGetNonce(): array
+    public static function dataProviderSetGetNonce(): array
     {
         return [
             'Sets the value specified' => [
@@ -182,7 +182,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals($state, $provider->getState());
     }
 
-    public function dataProviderSetGetState(): array
+    public static function dataProviderSetGetState(): array
     {
         return [
             'Sets the value specified' => [
@@ -273,7 +273,7 @@ class GovUkAccountTest extends TestCase
         $provider->validateAccessToken($token->getToken());
     }
 
-    public function dataProviderValidateAccessToken(): array
+    public static function dataProviderValidateAccessToken(): array
     {
         return [
             'Valid Token' => [[
@@ -325,7 +325,7 @@ class GovUkAccountTest extends TestCase
         $provider->validateIdToken($token->getIdToken(), 'valid-nonce');
     }
 
-    public function dataProviderValidateIdToken(): array
+    public static function dataProviderValidateIdToken(): array
     {
         return [
             'Valid Token' => [[
@@ -428,7 +428,7 @@ class GovUkAccountTest extends TestCase
         $provider->getResourceOwner($token);
     }
 
-    public function dataProviderValidateCoreIdentityToken(): array
+    public static function dataProviderValidateCoreIdentityToken(): array
     {
         return [
             'Valid Token' => [[
