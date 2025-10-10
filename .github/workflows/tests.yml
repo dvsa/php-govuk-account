@@ -17,8 +17,9 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4']
         stability: [prefer-lowest, prefer-stable]
+        psr-cache: ['1.0', '2.0', '3.0']
 
-    name: PHP ${{ matrix.php }} - ${{ matrix.stability }}
+    name: PHP ${{ matrix.php }} - ${{ matrix.stability }} - PSR Cache ${{ matrix.psr-cache }}
 
     steps:
       - name: Checkout code
@@ -34,5 +35,11 @@ jobs:
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
 
+      - name: Install specific PSR Cache version
+        run: composer require psr/cache:^${{ matrix.psr-cache }} --no-interaction --no-progress
+
       - name: Execute tests
         run: composer test
+
+      - name: Verify PSR Cache version
+        run: composer show psr/cache
