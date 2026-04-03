@@ -31,7 +31,6 @@
     "guzzlehttp/psr7": "^2.4.5",
     "illuminate/collections": "^8.0",
     "league/oauth2-client": "^2.6",
-    "paragonie/random_compat": "^9.99",
     "psr/cache": "^1.0",
     "psr/http-client": "^1.0",
     "psr/http-factory": "^1.0",
