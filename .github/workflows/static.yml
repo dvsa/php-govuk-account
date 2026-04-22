@@ -27,12 +27,40 @@ jobs:
           php-version: ${{ matrix.php-version }}
           coverage: none
           extensions: mbstring, intl
+          ini-values: error_reporting=E_ALL, display_errors=On, memory_limit=512M
+
+      - name: Environment diagnostics
+        run: |
+          echo "::group::PHP version"
+          php --version
+          echo "::endgroup::"
+          echo "::group::Composer version"
+          composer --version
+          echo "::endgroup::"
 
       - name: Install dependencies
         run: composer update --no-interaction --no-progress
 
-      - name: Execute PHPStan
-        run: vendor/bin/phpstan analyze --no-progress
+      - name: Resolved package versions
+        run: |
+          echo "::group::Direct dependencies"
+          composer show --direct
+          echo "::endgroup::"
+
+      - name: PHPStan version and active configuration
+        run: |
+          echo "::group::PHPStan version"
+          vendor/bin/phpstan --version
+          echo "::endgroup::"
+          echo "::group::phpstan.neon (source)"
+          cat phpstan.neon
+          echo "::endgroup::"
+          echo "::group::Resolved PHPStan parameters (incl. level, included rule sets, ignored errors)"
+          vendor/bin/phpstan dump-parameters --no-ansi || true
+          echo "::endgroup::"
+
+      - name: Execute PHPStan (table format, with file/line context)
+        run: vendor/bin/phpstan analyze --no-progress --error-format=table --memory-limit=512M
 
   php-codesniffer:
     name: PHP-CodeSniffer
@@ -52,9 +80,43 @@ jobs:
           php-version: ${{ matrix.php-version }}
           coverage: none
           extensions: mbstring
+          ini-values: error_reporting=E_ALL, display_errors=On
+
+      - name: Environment diagnostics
+        run: |
+          echo "::group::PHP version"
+          php --version
+          echo "::endgroup::"
+          echo "::group::Composer version"
+          composer --version
+          echo "::endgroup::"
 
       - name: Install dependencies
         run: composer update --no-interaction --no-progress
 
-      - name: Execute PHP CodeSniffer
-        run: vendor/bin/phpcs -q
+      - name: Resolved package versions
+        run: |
+          echo "::group::Direct dependencies"
+          composer show --direct
+          echo "::endgroup::"
+
+      - name: PHP_CodeSniffer version, installed standards and active sniffs
+        run: |
+          echo "::group::PHP_CodeSniffer version"
+          vendor/bin/phpcs --version
+          echo "::endgroup::"
+          echo "::group::Installed standards"
+          vendor/bin/phpcs -i
+          echo "::endgroup::"
+          echo "::group::phpcs.xml (source)"
+          cat phpcs.xml
+          echo "::endgroup::"
+          echo "::group::All sniffs registered for this project"
+          vendor/bin/phpcs -e
+          echo "::endgroup::"
+          echo "::group::Global PHPCS configuration"
+          vendor/bin/phpcs --config-show || true
+          echo "::endgroup::"
+
+      - name: Execute PHP_CodeSniffer (with sniff names, progress and full + summary reports)
+        run: vendor/bin/phpcs -p -s --colors --report=full --report-summary

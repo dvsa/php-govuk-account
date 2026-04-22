@@ -30,9 +30,52 @@ jobs:
           php-version: ${{ matrix.php }}
           tools: composer:v2
           coverage: none
+          ini-values: error_reporting=E_ALL, display_errors=On, log_errors=On, zend.assertions=1, assert.exception=1
+
+      - name: Environment diagnostics
+        run: |
+          echo "::group::PHP version"
+          php --version
+          echo "::endgroup::"
+          echo "::group::Loaded PHP extensions"
+          php -m
+          echo "::endgroup::"
+          echo "::group::Composer version"
+          composer --version
+          echo "::endgroup::"
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
 
-      - name: Execute tests
-        run: vendor/bin/phpunit
+      - name: Resolved package versions
+        run: |
+          echo "::group::Direct dependencies"
+          composer show --direct
+          echo "::endgroup::"
+          echo "::group::Full dependency tree"
+          composer show --tree --no-dev=false 2>/dev/null || composer show --tree
+          echo "::endgroup::"
+
+      - name: PHPUnit version and configuration
+        run: |
+          echo "::group::PHPUnit version"
+          vendor/bin/phpunit --version
+          echo "::endgroup::"
+          echo "::group::phpunit.xml"
+          cat phpunit.xml
+          echo "::endgroup::"
+          echo "::group::Discovered tests"
+          vendor/bin/phpunit --list-tests
+          echo "::endgroup::"
+
+      - name: Execute tests (testdox per-test output, deprecations surfaced)
+        run: |
+          vendor/bin/phpunit \
+            --colors=always \
+            --testdox \
+            --display-deprecations \
+            --display-errors \
+            --display-notices \
+            --display-warnings \
+            --display-incomplete \
+            --display-skipped

@@ -29,16 +29,35 @@ jobs:
           php-version: '8.2'
           coverage: none
           extensions: mbstring
+          ini-values: error_reporting=E_ALL, display_errors=On
+
+      - name: Environment diagnostics
+        run: |
+          echo "::group::PHP version"
+          php --version
+          echo "::endgroup::"
+          echo "::group::Composer version"
+          composer --version
+          echo "::endgroup::"
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
+
+      - name: Resolved package versions
+        run: |
+          echo "::group::Direct dependencies"
+          composer show --direct
+          echo "::endgroup::"
+          echo "::group::Full dependency tree"
+          composer show --tree
+          echo "::endgroup::"
 
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/php@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --sarif-file-output=snyk.sarif
+          args: --sarif-file-output=snyk.sarif --print-deps
 
       - name: Upload result to GitHub Code Scanning
         if: ${{ success() || failure() }}
