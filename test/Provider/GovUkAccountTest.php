@@ -6,11 +6,12 @@ use Dvsa\GovUkAccount\Exception\InvalidTokenException;
 use Dvsa\GovUkAccount\Provider\GovUkAccount;
 use Dvsa\GovUkAccount\Token\AccessToken;
 use Dvsa\GovUkAccount\Token\GovUkAccountUser;
-use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWT;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7\Response;
 use Mockery as m;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 
@@ -54,7 +55,7 @@ class GovUkAccountTest extends TestCase
         $this->httpClient = m::mock(ClientInterface::class, \Psr\Http\Client\ClientInterface::class);
     }
 
-    protected function getProvider(array $options = [], array $collaborators = [], CacheItemPoolInterface $cache = null): GovUkAccount
+    protected function getProvider(array $options = [], array $collaborators = [], ?CacheItemPoolInterface $cache = null): GovUkAccount
     {
         $options = array_merge([
             'client_id' => 'mock_client_id',
@@ -62,7 +63,7 @@ class GovUkAccountTest extends TestCase
                 'logged_in' => 'https://service.example/logged-in',
             ],
             'keys' => [
-                'algorithm' => 'RS256',
+                'algorithm' => 'ES256',
                 'private_key' => static::CLIENT_PRIVATE_KEY,
             ],
             'core_identity_did_document_url' => 'https://iodc.example/.well-known/did.json',
@@ -117,14 +118,12 @@ class GovUkAccountTest extends TestCase
         ], $result);
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
+    #[DoesNotPerformAssertions]
     public function testStringIdentityAssurancePublicKey(): void
     {
         $options = [
             'keys' => [
-                'algorithm' => 'RS256',
+                'algorithm' => 'ES256',
                 'private_key' => static::CLIENT_PRIVATE_KEY,
                 'identity_assurance_public_key' => json_encode(static::SERVICE_PUBLIC_KEY_JWK['keys'][1]),
             ]
@@ -134,9 +133,7 @@ class GovUkAccountTest extends TestCase
         $this->getProvider($options);
     }
 
-    /**
-     * @dataProvider dataProviderSetGetNonce
-     */
+    #[DataProvider('dataProviderSetGetNonce')]
     public function testSetGetNonce(?string $value): void
     {
         $provider = $this->getProvider();
@@ -152,7 +149,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals($nonce, $provider->getNonce());
     }
 
-    public function dataProviderSetGetNonce(): array
+    public static function dataProviderSetGetNonce(): array
     {
         return [
             'Sets the value specified' => [
@@ -164,9 +161,7 @@ class GovUkAccountTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProviderSetGetState
-     */
+    #[DataProvider('dataProviderSetGetState')]
     public function testSetState(?string $value): void
     {
         $provider = $this->getProvider();
@@ -182,7 +177,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals($state, $provider->getState());
     }
 
-    public function dataProviderSetGetState(): array
+    public static function dataProviderSetGetState(): array
     {
         return [
             'Sets the value specified' => [
@@ -237,9 +232,7 @@ class GovUkAccountTest extends TestCase
         $this->assertInstanceOf(\Dvsa\GovUkAccount\Token\AccessToken::class, $token);
     }
 
-    /**
-     * @dataProvider dataProviderValidateAccessToken
-     */
+    #[DataProvider('dataProviderValidateAccessToken')]
     public function testValidateAccessToken(array $accessTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -273,7 +266,7 @@ class GovUkAccountTest extends TestCase
         $provider->validateAccessToken($token->getToken());
     }
 
-    public function dataProviderValidateAccessToken(): array
+    public static function dataProviderValidateAccessToken(): array
     {
         return [
             'Valid Token' => [[
@@ -288,9 +281,7 @@ class GovUkAccountTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProviderValidateIdToken
-     */
+    #[DataProvider('dataProviderValidateIdToken')]
     public function testValidateIdToken(array $idTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -325,7 +316,7 @@ class GovUkAccountTest extends TestCase
         $provider->validateIdToken($token->getIdToken(), 'valid-nonce');
     }
 
-    public function dataProviderValidateIdToken(): array
+    public static function dataProviderValidateIdToken(): array
     {
         return [
             'Valid Token' => [[
@@ -394,9 +385,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals('test-subject', $userInfo->getId(), "getID does not return subject");
     }
 
-    /**
-     * @dataProvider dataProviderValidateCoreIdentityToken
-     */
+    #[DataProvider('dataProviderValidateCoreIdentityToken')]
     public function testValidateCoreIdentityClaim(array $coreIdentityTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -428,7 +417,7 @@ class GovUkAccountTest extends TestCase
         $provider->getResourceOwner($token);
     }
 
-    public function dataProviderValidateCoreIdentityToken(): array
+    public static function dataProviderValidateCoreIdentityToken(): array
     {
         return [
             'Valid Token' => [[

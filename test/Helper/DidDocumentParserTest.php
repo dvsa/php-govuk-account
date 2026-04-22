@@ -3,14 +3,13 @@
 namespace Helper;
 
 use Dvsa\GovUkAccount\Helper\DidDocumentParser;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Dvsa\GovUkAccount\Helper\DidDocumentParser
- */
+#[CoversClass(DidDocumentParser::class)]
 class DidDocumentParserTest extends TestCase
 {
-    public function testParse()
+    public function testParse(): void
     {
         $didDocument = '{"assertionMethod":[{"id":"#key-1","type":"JsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}}]}';
         $parsed = DidDocumentParser::parse($didDocument);
@@ -33,7 +32,7 @@ class DidDocumentParserTest extends TestCase
         ], $parsed);
     }
 
-    public function testParseToKeyArray()
+    public function testParseToKeyArray(): void
     {
         $didDocument = '{"assertionMethod":[{"id":"#key-1","type":"JsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}}]}';
         $parsed = DidDocumentParser::parseToKeyArray($didDocument);
@@ -42,7 +41,7 @@ class DidDocumentParserTest extends TestCase
         $this->assertContainsOnlyInstancesOf(\Firebase\JWT\Key::class, $parsed);
     }
 
-    public function testParseToKeyArrayWithInvalidDocument()
+    public function testParseToKeyArrayWithInvalidDocument(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('DID document has no assertion method');
@@ -50,7 +49,7 @@ class DidDocumentParserTest extends TestCase
         DidDocumentParser::parseToKeyArray('{"assertionMethodTypo":[]}');
     }
 
-    public function testParseToKeyArrayWithNoValidJsonWebKeyTypes()
+    public function testParseToKeyArrayWithNoValidJsonWebKeyTypes(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('No valid keys found in DID document');
@@ -59,7 +58,7 @@ class DidDocumentParserTest extends TestCase
         DidDocumentParser::parseToKeyArray($didDocument);
     }
 
-    public function testParseToKeyArrayWithNoAlg()
+    public function testParseToKeyArrayWithNoAlg(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('No valid keys found in DID document');
@@ -68,7 +67,7 @@ class DidDocumentParserTest extends TestCase
         DidDocumentParser::parseToKeyArray($didDocument);
     }
 
-    public function testParseToKeyArrayInvalidKeysAreOmittedButValidOnesRemain()
+    public function testParseToKeyArrayInvalidKeysAreOmittedButValidOnesRemain(): void
     {
         $didDocument = '{"assertionMethod":[{"id":"#key-1","type":"JsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}},{"id":"#key-2","type":"NotJsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}}]}';
         $parsed = DidDocumentParser::parseToKeyArray($didDocument);
@@ -77,7 +76,7 @@ class DidDocumentParserTest extends TestCase
         $this->assertContainsOnlyInstancesOf(\Firebase\JWT\Key::class, $parsed);
     }
 
-    public function testParseToKeyArrayMultipleKeysAreParsed()
+    public function testParseToKeyArrayMultipleKeysAreParsed(): void
     {
         $didDocument = '{"assertionMethod":[{"id":"#key-1","type":"JsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}},{"id":"#key-2","type":"JsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}}]}';
         $parsed = DidDocumentParser::parseToKeyArray($didDocument);
@@ -86,7 +85,7 @@ class DidDocumentParserTest extends TestCase
         $this->assertContainsOnlyInstancesOf(\Firebase\JWT\Key::class, $parsed);
     }
 
-    public function testParseToKeyArrayWhereArrayIndexIsKeyIds()
+    public function testParseToKeyArrayWhereArrayIndexIsKeyIds(): void
     {
         $didDocument = '{"assertionMethod":[{"id":"#key-1","type":"JsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}},{"id":"#key-2","type":"JsonWebKey","publicKeyJwk":{"alg":"ES256","crv":"P-256","kty":"EC","use":"sig","x":"x","y":"y"}}]}';
         $parsed = DidDocumentParser::parseToKeyArray($didDocument);

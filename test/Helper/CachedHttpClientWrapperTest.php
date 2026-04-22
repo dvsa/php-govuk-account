@@ -19,7 +19,7 @@ class CachedHttpClientWrapperTest extends TestCase
         $this->httpClient = m::mock(ClientInterface::class, \Psr\Http\Client\ClientInterface::class);
     }
 
-    public function testSendRequestWithCacheHit()
+    public function testSendRequestWithCacheHit(): void
     {
         $cache = m::mock(CacheItemPoolInterface::class);
         $cacheItem = m::mock(\Psr\Cache\CacheItemInterface::class);
@@ -42,7 +42,7 @@ class CachedHttpClientWrapperTest extends TestCase
         $this->assertSame($cacheValue, $result);
     }
 
-    public function testSendRequestWithCacheMiss()
+    public function testSendRequestWithCacheMiss(): void
     {
         $cache = m::mock(CacheItemPoolInterface::class);
         $cacheItem = m::mock(\Psr\Cache\CacheItemInterface::class);
@@ -76,7 +76,7 @@ class CachedHttpClientWrapperTest extends TestCase
         $this->assertSame($cacheValue, $result);
     }
 
-    public function testSendRequestWithCacheMissAndCustomTtl()
+    public function testSendRequestWithCacheMissAndCustomTtl(): void
     {
         $cache = m::mock(CacheItemPoolInterface::class);
         $cacheItem = m::mock(\Psr\Cache\CacheItemInterface::class);

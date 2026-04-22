@@ -39,10 +39,7 @@ class AccessToken extends \League\OAuth2\Client\Token\AccessToken
         return $this->tokenClaims;
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         $parameters = parent::jsonSerialize();
 

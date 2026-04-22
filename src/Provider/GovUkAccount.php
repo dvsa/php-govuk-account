@@ -10,13 +10,11 @@ use Dvsa\GovUkAccount\Helper\CachedHttpClientWrapper;
 use Dvsa\GovUkAccount\Helper\DidDocumentParser;
 use Dvsa\GovUkAccount\Token\GovUkAccountUser;
 use Exception;
-use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use GuzzleHttp\ClientInterface as HttpClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Psr7\HttpFactory;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use League\OAuth2\Client\Grant\AbstractGrant;
@@ -101,7 +99,7 @@ class GovUkAccount extends AbstractProvider
      *
      * @return string
      */
-    public function setState(string $state = null): string
+    public function setState(?string $state = null): string
     {
         if (empty($state)) {
             $state = $this->getRandomState();
@@ -169,14 +167,6 @@ class GovUkAccount extends AbstractProvider
      */
     public function validateAccessToken(string $token): array
     {
-        /**
-         * The typing of the JWT library is not quite right for `decode()` method for PHPStan as it doesn't accept ArrayAccess.
-         * The following type is required to cast `ArrayAccess<string, Key>` to just an expected `array<string, Key>`.
-         *
-         * Can be removed once fixed in the JWT library.
-         *
-         * @var array<string, Key> $keySet
-         */
         $keySet = $this->getGovUkSignInPublicKeys();
 
         $tokenClaims = (array)JWT::decode(
@@ -239,16 +229,8 @@ class GovUkAccount extends AbstractProvider
     /**
      * @throws InvalidTokenException
      */
-    public function validateIdToken(string $token, string $nonce = null): array
+    public function validateIdToken(string $token, ?string $nonce = null): array
     {
-        /**
-         * The typing of the JWT library is not quite right for `decode()` method for PHPStan as it doesn't accept ArrayAccess.
-         * The following type is required to cast `ArrayAccess<string, Key>` to just an expected `array<string, Key>`.
-         *
-         * Can be removed once fixed in the JWT library.
-         *
-         * @var array<string, Key> $keySet
-         */
         $keySet = $this->getGovUkSignInPublicKeys();
 
         $tokenClaims = (array)JWT::decode(
@@ -370,7 +352,7 @@ class GovUkAccount extends AbstractProvider
      *
      * @return string
      */
-    public function setNonce(string $nonce = null): string
+    public function setNonce(?string $nonce = null): string
     {
         if (empty($nonce)) {
             $nonce = $this->getRandomState();

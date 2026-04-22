@@ -13,8 +13,9 @@ jobs:
     name: PHPStan
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        php-version: [ '8.2', '8.3' ]
+        php-version: [ '8.2', '8.3', '8.4', '8.5' ]
 
     steps:
       - name: Checkout code
@@ -30,9 +31,6 @@ jobs:
       - name: Install dependencies
         run: composer update --no-interaction --no-progress
 
-      - name: Install PHPStan
-        run: composer bin phpstan update --no-interaction --no-progress
-
       - name: Execute PHPStan
         run: vendor/bin/phpstan analyze --no-progress
 
@@ -40,12 +38,13 @@ jobs:
     name: PHP-CodeSniffer
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        php-version: [ '8.2', '8.3' ]
+        php-version: [ '8.2', '8.3', '8.4', '8.5' ]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -57,35 +56,5 @@ jobs:
       - name: Install dependencies
         run: composer update --no-interaction --no-progress
 
-      - name: Install PHP CodeSniffer
-        run: composer bin php-codesniffer update --no-interaction --no-progress
-
       - name: Execute PHP CodeSniffer
         run: vendor/bin/phpcs -q
-
-  psalm:
-    name: Psalm
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-version: [ '8.2', '8.3' ]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          coverage: none
-          extensions: mbstring, intl
-
-      - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction --no-progress
-
-      - name: Install Psalm
-        run: composer bin psalm update --no-interaction --no-progress
-
-      - name: Execute Psalm
-        run: vendor/bin/psalm --no-progress --output-format=github
