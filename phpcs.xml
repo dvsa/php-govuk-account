@@ -1,9 +1,59 @@
 <?xml version="1.0"?>
-<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="authentication-cognito" xsi:noNamespaceSchemaLocation="./vendor-bin/php-codesniffer/vendor/squizlabs/php_codesniffer/phpcs.xsd">
+<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         name="dvsa/php-govuk-account"
+         xsi:noNamespaceSchemaLocation="./vendor/squizlabs/php_codesniffer/phpcs.xsd">
+    <description>
+        Coding standards for dvsa/php-govuk-account.
+
+        Inherits the modern PSR-12 ruleset (the successor to the deprecated PSR-2)
+        and layers on the project-specific defensive rules from dvsa/coding-standards.
+    </description>
+
     <file>./src</file>
     <file>./test</file>
 
     <exclude-pattern>*/vendor/*</exclude-pattern>
 
-    <rule ref="./vendor-bin/php-codesniffer/vendor/dvsa/coding-standards/src/Profiles/DVSA/CS/ruleset.xml" />
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <!-- Treat warnings as errors so they cannot be silently ignored in CI. -->
+    <config name="ignore_warnings_on_exit" value="0"/>
+    <config name="ignore_errors_on_exit" value="0"/>
+
+    <!-- Modern baseline. -->
+    <rule ref="PSR12">
+        <!-- Long lines are tolerated in tests (fixture data, base64 keys, JWTs). -->
+        <exclude name="Generic.Files.LineLength"/>
+    </rule>
+
+    <!-- Project additions on top of PSR-12. -->
+    <rule ref="./vendor/dvsa/coding-standards/src/Profiles/DVSA/CS/ruleset.xml"/>
+
+    <!-- Defensive coding hygiene. -->
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array">
+                <element key="sizeof" value="count"/>
+                <element key="delete" value="unset"/>
+                <element key="print" value="echo"/>
+                <element key="create_function" value="null"/>
+                <element key="eval" value="null"/>
+            </property>
+        </properties>
+    </rule>
+    <rule ref="Generic.PHP.NoSilencedErrors"/>
+    <rule ref="Generic.PHP.DeprecatedFunctions"/>
+    <rule ref="Generic.CodeAnalysis.EmptyStatement"/>
+    <rule ref="Generic.CodeAnalysis.ForLoopShouldBeWhileLoop"/>
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <!-- Methods overriding a parent class must keep the parent signature
+             even when they do not need every parameter (e.g. unused $params
+             passed through by league/oauth2-client). -->
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClass"/>
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed"/>
+    </rule>
+    <rule ref="Generic.CodeAnalysis.UselessOverridingMethod"/>
+    <rule ref="Squiz.PHP.DiscouragedFunctions"/>
+    <rule ref="Squiz.PHP.Eval"/>
 </ruleset>

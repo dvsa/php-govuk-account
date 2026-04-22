@@ -25,6 +25,9 @@ class CachedHttpClientWrapper
     }
 
     /**
+     * @param array<string, mixed> $options
+     * @return array<mixed>
+     *
      * @throws GuzzleException
      * @throws InvalidArgumentException
      * @throws JsonException
@@ -34,17 +37,29 @@ class CachedHttpClientWrapper
         $cacheKey = self::CACHE_KEY_PREFIX . sha1($url);
         $cacheItem = $this->cache?->getItem($cacheKey);
 
-        if ($cacheItem && $cacheItem->isHit()) {
-            return unserialize($cacheItem->get());
+        if ($cacheItem !== null && $cacheItem->isHit()) {
+            // Cached entries are stored as JSON to avoid the PHP object-injection
+            // risk that comes with unserialize() on data which may live in a
+            // shared backend (e.g. Redis, Memcached).
+            $cached = $cacheItem->get();
+            if (is_string($cached)) {
+                $decoded = json_decode($cached, true, 512, JSON_THROW_ON_ERROR);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
         }
 
         $response = $this->httpClient->request('GET', $url, $options);
 
         $parsedResponse = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($parsedResponse)) {
+            throw new JsonException('Expected JSON object/array response from ' . $url);
+        }
 
-        if ($this->cache instanceof CacheItemPoolInterface && $cacheItem) {
+        if ($this->cache instanceof CacheItemPoolInterface && $cacheItem !== null) {
             $cacheItem->expiresAfter($cacheTtlSeconds);
-            $cacheItem->set(serialize($parsedResponse));
+            $cacheItem->set(json_encode($parsedResponse, JSON_THROW_ON_ERROR));
             $this->cache->save($cacheItem);
         }
 

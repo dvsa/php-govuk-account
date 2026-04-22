@@ -6,17 +6,16 @@ use ArrayAccess;
 use DateTimeImmutable;
 use Dvsa\GovUkAccount\Exception\ApiException;
 use Dvsa\GovUkAccount\Exception\InvalidTokenException;
+use Dvsa\GovUkAccount\Helper\Assert;
 use Dvsa\GovUkAccount\Helper\CachedHttpClientWrapper;
 use Dvsa\GovUkAccount\Helper\DidDocumentParser;
 use Dvsa\GovUkAccount\Token\GovUkAccountUser;
 use Exception;
-use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use GuzzleHttp\ClientInterface as HttpClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Psr7\HttpFactory;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use League\OAuth2\Client\Grant\AbstractGrant;
@@ -28,6 +27,8 @@ use Psr\Http\Message\ResponseInterface;
 
 class GovUkAccount extends AbstractProvider
 {
+    use BearerAuthorizationTrait;
+
     public const DEFAULT_SCOPES = ['openid', 'offline_access'];
     public const SCOPE_SEPARATOR = ' ';
     public const DEFAULT_ACCESS_TOKEN_EXPIRY = '+5 Minute';
@@ -39,34 +40,53 @@ class GovUkAccount extends AbstractProvider
     protected string $expectedCoreIdentityIssuer;
 
     protected string $openIdConnectConfigurationUrl;
-    protected ?array $openIdConnectConfiguration;
 
-    protected ?ArrayAccess $govUkSignInPublicKeys;
+    /** @var array<string, mixed>|null */
+    protected ?array $openIdConnectConfiguration = null;
+
+    /** @var ArrayAccess<string, Key>|null */
+    protected ?ArrayAccess $govUkSignInPublicKeys = null;
     protected string $core_identity_did_document_url;
+
+    /** @var array<string, Key> */
     protected array $coreIdentityPublicKeys;
 
     protected CachedHttpClientWrapper $cachedHttpClientWrapper;
 
-    use BearerAuthorizationTrait;
-
     /**
+     * @param array<string, mixed> $options
+     * @param array<string, mixed> $collaborators
+     *
      * @throws ApiException
      * @throws \Psr\Cache\InvalidArgumentException
+     * @throws \InvalidArgumentException When a required option is missing or has the wrong type.
      */
     public function __construct(
-        array                  $options = [],
-        array                  $collaborators = [],
+        array $options = [],
+        array $collaborators = [],
         protected ?CacheItemPoolInterface $cache = null
     ) {
         parent::__construct($options, $collaborators);
 
-        $this->clientId = $options['client_id'];
-        $this->algorithm = $options['keys']['algorithm'];
-        $this->privateKey = base64_decode((string) $options['keys']['private_key']);
-        $this->loggedInUrl = $this->redirectUri = $options['redirect_uri']['logged_in'];
-        $this->expectedCoreIdentityIssuer = $options['expected_core_identity_issuer'];
-        $this->openIdConnectConfigurationUrl = $options['discovery_endpoint'];
-        $this->core_identity_did_document_url = $options['core_identity_did_document_url'];
+        $context = self::class . ' configuration';
+
+        $this->clientId = Assert::requireString($options, $context, 'client_id');
+        $this->algorithm = Assert::requireString($options, $context, 'keys', 'algorithm');
+
+        $privateKeyB64 = Assert::requireString($options, $context, 'keys', 'private_key');
+        $decodedKey = base64_decode($privateKeyB64, true);
+        if ($decodedKey === false) {
+            throw new InvalidArgumentException($context . ': option "keys.private_key" is not valid base64');
+        }
+        $this->privateKey = $decodedKey;
+
+        $loggedInUrl = Assert::requireString($options, $context, 'redirect_uri', 'logged_in');
+        $this->loggedInUrl = $loggedInUrl;
+        $this->redirectUri = $loggedInUrl;
+
+        $this->expectedCoreIdentityIssuer = Assert::requireString($options, $context, 'expected_core_identity_issuer');
+        $this->openIdConnectConfigurationUrl = Assert::requireString($options, $context, 'discovery_endpoint');
+        $this->core_identity_did_document_url = Assert::requireString($options, $context, 'core_identity_did_document_url');
     }
 
     public function setHttpClient(HttpClientInterface $client): GovUkAccount|static
@@ -82,11 +102,15 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
-     * @return Key[]
+     * @return array<string, Key>
+     *
      * @throws GuzzleException
+     * @throws \Psr\Cache\InvalidArgumentException
+     * @throws \JsonException
      */
     private function parseDidDocument(string $url): array
     {
+        /** @var array<string, mixed> $didDocument */
         $didDocument = $this->cachedHttpClientWrapper->sendGetRequest(url: $url, cacheTtlSeconds: 3600);
 
         return DidDocumentParser::parseToKeyArray($didDocument);
@@ -101,9 +125,9 @@ class GovUkAccount extends AbstractProvider
      *
      * @return string
      */
-    public function setState(string $state = null): string
+    public function setState(?string $state = null): string
     {
-        if (empty($state)) {
+        if ($state === null || $state === '') {
             $state = $this->getRandomState();
         }
         $this->state = $state;
@@ -117,8 +141,6 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
-     * @param string $key
-     * @return string
      * @throws ApiException
      */
     protected function getOpenIdConnectConfiguration(string $key): string
@@ -133,13 +155,25 @@ class GovUkAccount extends AbstractProvider
             );
         }
 
-        return $this->openIdConnectConfiguration[$key];
+        $value = $this->openIdConnectConfiguration[$key];
+        if (!is_string($value)) {
+            throw new InvalidArgumentException(sprintf(
+                'OpenID Connect configuration key "%s" is not a string (got %s)',
+                $key,
+                get_debug_type($value),
+            ));
+        }
+
+        return $value;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function loadOpenIdConnectConfiguration(): array
     {
         try {
-            return $this->cachedHttpClientWrapper->sendGetRequest(url: $this->openIdConnectConfigurationUrl, cacheTtlSeconds: 3600);
+            $config = $this->cachedHttpClientWrapper->sendGetRequest(url: $this->openIdConnectConfigurationUrl, cacheTtlSeconds: 3600);
         } catch (GuzzleException $e) {
             throw new ApiException(
                 'Error loading OpenID Connect Configuration',
@@ -147,8 +181,21 @@ class GovUkAccount extends AbstractProvider
                 $e
             );
         }
+
+        $typed = [];
+        foreach ($config as $key => $value) {
+            if (!is_string($key)) {
+                throw new ApiException('OpenID Connect configuration contains non-string key: ' . get_debug_type($key));
+            }
+            $typed[$key] = $value;
+        }
+
+        return $typed;
     }
 
+    /**
+     * @param array<array-key, mixed> $params
+     */
     public function getBaseAccessTokenUrl(array $params): string
     {
         return $this->getOpenIdConnectConfiguration('token_endpoint');
@@ -165,40 +212,35 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
+     * @return array<string, mixed>
+     *
      * @throws InvalidTokenException
+     * @throws ApiException
      */
     public function validateAccessToken(string $token): array
     {
-        /**
-         * The typing of the JWT library is not quite right for `decode()` method for PHPStan as it doesn't accept ArrayAccess.
-         * The following type is required to cast `ArrayAccess<string, Key>` to just an expected `array<string, Key>`.
-         *
-         * Can be removed once fixed in the JWT library.
-         *
-         * @var array<string, Key> $keySet
-         */
         $keySet = $this->getGovUkSignInPublicKeys();
 
-        $tokenClaims = (array)JWT::decode(
-            $token,
-            $keySet
-        );
+        /** @var array<string, mixed> $tokenClaims */
+        $tokenClaims = (array)JWT::decode($token, $keySet);
 
-        if ($tokenClaims['iss']
-            !== $this->getOpenIdConnectConfiguration('issuer')
-        ) {
-            throw new InvalidTokenException(
-                'The Issuer of the access token is invalid: '
-                . $tokenClaims['iss'] . ' !== '
-                . $this->getOpenIdConnectConfiguration('issuer')
-            );
+        $issuer = $tokenClaims['iss'] ?? null;
+        $expectedIssuer = $this->getOpenIdConnectConfiguration('issuer');
+        if ($issuer !== $expectedIssuer) {
+            throw new InvalidTokenException(sprintf(
+                'The Issuer of the access token is invalid: %s !== %s',
+                Assert::describe($issuer),
+                $expectedIssuer,
+            ));
         }
 
-        if ($tokenClaims['client_id'] !== $this->clientId) {
-            throw new InvalidTokenException(
-                'The client_id of the access token is invalid: '
-                . $tokenClaims['client_id'] . ' !== ' . $this->clientId
-            );
+        $clientId = $tokenClaims['client_id'] ?? null;
+        if ($clientId !== $this->clientId) {
+            throw new InvalidTokenException(sprintf(
+                'The client_id of the access token is invalid: %s !== %s',
+                Assert::describe($clientId),
+                $this->clientId,
+            ));
         }
 
         // IAT, EXP, NBF are checked by JWT::decode();
@@ -206,12 +248,14 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
+     * @return ArrayAccess<string, Key>
+     *
      * @throws ApiException
      * @throws GuzzleException
      */
     protected function getGovUkSignInPublicKeys(): ArrayAccess
     {
-        if (!isset($this->govUkSignInPublicKeys)) {
+        if ($this->govUkSignInPublicKeys === null) {
             $this->govUkSignInPublicKeys = $this->loadJwks($this->getOpenIdConnectConfiguration('jwks_uri'));
         }
 
@@ -219,6 +263,8 @@ class GovUkAccount extends AbstractProvider
     }
 
     /**
+     * @return ArrayAccess<string, Key>
+     *
      * @throws ApiException
      * @throws GuzzleException
      */
@@ -233,51 +279,54 @@ class GovUkAccount extends AbstractProvider
                 $e
             );
         }
-        return new Collection(JWK::parseKeySet($response));
+
+        /** @var Collection<string, Key> $collection */
+        $collection = new Collection(JWK::parseKeySet($response));
+
+        return $collection;
     }
 
     /**
+     * @return array<string, mixed>
+     *
      * @throws InvalidTokenException
+     * @throws ApiException
      */
-    public function validateIdToken(string $token, string $nonce = null): array
+    public function validateIdToken(string $token, ?string $nonce = null): array
     {
-        /**
-         * The typing of the JWT library is not quite right for `decode()` method for PHPStan as it doesn't accept ArrayAccess.
-         * The following type is required to cast `ArrayAccess<string, Key>` to just an expected `array<string, Key>`.
-         *
-         * Can be removed once fixed in the JWT library.
-         *
-         * @var array<string, Key> $keySet
-         */
         $keySet = $this->getGovUkSignInPublicKeys();
 
-        $tokenClaims = (array)JWT::decode(
-            $token,
-            $keySet
-        );
+        /** @var array<string, mixed> $tokenClaims */
+        $tokenClaims = (array)JWT::decode($token, $keySet);
 
-        if ($tokenClaims['iss']
-            !== $this->getOpenIdConnectConfiguration('issuer')
-        ) {
-            throw new InvalidTokenException(
-                'The Issuer of the ID token is invalid: '
-                . $tokenClaims['iss'] . ' !== '
-                . $this->getOpenIdConnectConfiguration('issuer')
-            );
+        $issuer = $tokenClaims['iss'] ?? null;
+        $expectedIssuer = $this->getOpenIdConnectConfiguration('issuer');
+        if ($issuer !== $expectedIssuer) {
+            throw new InvalidTokenException(sprintf(
+                'The Issuer of the ID token is invalid: %s !== %s',
+                Assert::describe($issuer),
+                $expectedIssuer,
+            ));
         }
 
-        if ($tokenClaims['aud'] !== $this->clientId) {
-            throw new InvalidTokenException(
-                'The aud of the ID token is invalid: '
-                . $tokenClaims['aud'] . ' !== ' . $this->clientId
-            );
+        $audience = $tokenClaims['aud'] ?? null;
+        if ($audience !== $this->clientId) {
+            throw new InvalidTokenException(sprintf(
+                'The aud of the ID token is invalid: %s !== %s',
+                Assert::describe($audience),
+                $this->clientId,
+            ));
         }
 
-        if ($nonce !== null && $tokenClaims['nonce'] !== $nonce) {
-            throw new InvalidTokenException(
-                'The nonce of the ID token is invalid: '
-                . $tokenClaims['nonce'] . ' !== ' . $nonce
-            );
+        if ($nonce !== null) {
+            $claimNonce = $tokenClaims['nonce'] ?? null;
+            if ($claimNonce !== $nonce) {
+                throw new InvalidTokenException(sprintf(
+                    'The nonce of the ID token is invalid: %s !== %s',
+                    Assert::describe($claimNonce),
+                    $nonce,
+                ));
+            }
         }
 
         // IAT, EXP, NBF are checked by JWT::decode();
@@ -286,18 +335,25 @@ class GovUkAccount extends AbstractProvider
 
     /**
      * {@inheritDoc}
+     *
+     * @param array<string, mixed> $options
      */
     public function getAccessToken(
         $grant,
         array $options = []
     ): \Dvsa\GovUkAccount\Token\AccessToken {
         $issuedAt = new DateTimeImmutable();
-        $expiryDelta = $options['access_token_expiry_delta'] ??
-            static::DEFAULT_ACCESS_TOKEN_EXPIRY;
+        $expiryDelta = $options['access_token_expiry_delta'] ?? static::DEFAULT_ACCESS_TOKEN_EXPIRY;
+        if (!is_string($expiryDelta)) {
+            throw new InvalidArgumentException(sprintf(
+                'Option "access_token_expiry_delta" must be a string, got %s',
+                get_debug_type($expiryDelta),
+            ));
+        }
         $expiresAt = $issuedAt->modify($expiryDelta);
 
         if (!$expiresAt instanceof DateTimeImmutable) {
-            throw new \InvalidArgumentException('Could not create expiresAt using a delta on issuedAt.');
+            throw new InvalidArgumentException('Could not create expiresAt using a delta on issuedAt.');
         }
 
         $token = [
@@ -343,12 +399,16 @@ class GovUkAccount extends AbstractProvider
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
     }
 
+    /**
+     * @param array<array-key, mixed> $options
+     *
+     * @return array<array-key, mixed>
+     */
     protected function getAuthorizationParameters(array $options): array
     {
         $options = parent::getAuthorizationParameters($options);
 
-        // Generate a nonce if not already set.
-        if (empty($this->nonce)) {
+        if (!isset($this->nonce) || $this->nonce === '') {
             $this->setNonce();
         }
         $options['nonce'] = $this->getNonce();
@@ -370,9 +430,9 @@ class GovUkAccount extends AbstractProvider
      *
      * @return string
      */
-    public function setNonce(string $nonce = null): string
+    public function setNonce(?string $nonce = null): string
     {
-        if (empty($nonce)) {
+        if ($nonce === null || $nonce === '') {
             $nonce = $this->getRandomState();
         }
         $this->nonce = $nonce;
@@ -380,17 +440,25 @@ class GovUkAccount extends AbstractProvider
         return $this->nonce;
     }
 
+    /**
+     * @return list<string>
+     */
     protected function getDefaultScopes(): array
     {
-        return static::DEFAULT_SCOPES;
+        return self::DEFAULT_SCOPES;
     }
 
     protected function getScopeSeparator(): string
     {
-        return static::SCOPE_SEPARATOR;
+        return self::SCOPE_SEPARATOR;
     }
 
-    protected function checkResponse(ResponseInterface $response, $data)
+    /**
+     * @param mixed $data
+     *
+     * @throws ApiException
+     */
+    protected function checkResponse(ResponseInterface $response, $data): void
     {
         if ($response->getStatusCode() !== 200) {
             throw new ApiException(
@@ -402,67 +470,73 @@ class GovUkAccount extends AbstractProvider
         }
     }
 
+    /**
+     * @param array<array-key, mixed> $response
+     */
     protected function createAccessToken(
-        array         $response,
+        array $response,
         AbstractGrant $grant
     ): \Dvsa\GovUkAccount\Token\AccessToken {
+        /** @var array<string, mixed> $response */
         return new \Dvsa\GovUkAccount\Token\AccessToken($response, $this);
     }
 
     /**
-     * @throws InvalidTokenException|\JsonException
+     * @param array<array-key, mixed> $response
+     *
+     * @throws InvalidTokenException
+     * @throws \JsonException
      */
     protected function createResourceOwner(
-        array       $response,
+        array $response,
         AccessToken $token
     ): GovUkAccountUser {
         assert($token instanceof \Dvsa\GovUkAccount\Token\AccessToken);
 
-        // If set, verify the claims for CoreIdentity
+        // Validate CoreIdentity JWT if present.
         $coreIdentityToken = $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY] ?? null;
-        if (!empty($coreIdentityToken)) {
-            // Replace JWT with Validated Claim Array
+        if (is_string($coreIdentityToken) && $coreIdentityToken !== '') {
             $response[GovUkAccountUser::KEY_CLAIMS_CORE_IDENTITY_DECODED] = $this->validateCoreIdentityClaim(
                 $coreIdentityToken,
                 $token->getIdTokenClaims()
             );
         }
 
-        $encoded = json_encode($response);
-        if (!$encoded) {
-            throw new \JsonException('Could not encode $response');
+        $encoded = json_encode($response, JSON_THROW_ON_ERROR);
+
+        $decoded = json_decode($encoded, true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($decoded)) {
+            throw new \JsonException('Resource owner payload did not decode to an array');
         }
 
-        $response = json_decode($encoded, true);
-        if (!is_array($response)) {
-            throw new \JsonException('Could not decode $response');
-        }
-
-        return new GovUkAccountUser($response);
+        /** @var array<string, mixed> $decoded */
+        return new GovUkAccountUser($decoded);
     }
 
     /**
+     * @param array<string, mixed> $idTokenClaims
+     *
+     * @return array<string, mixed>
+     *
      * @throws InvalidTokenException
+     * @throws GuzzleException
      */
     public function validateCoreIdentityClaim(
         string $token,
-        array  $idTokenClaims
+        array $idTokenClaims
     ): array {
-
         $keys = $this->parseDidDocument(
             $this->core_identity_did_document_url
         );
 
-        $claims = (array)JWT::decode(
-            $token,
-            $keys
-        );
+        /** @var array<string, mixed> $claims */
+        $claims = (array)JWT::decode($token, $keys);
 
         $issuer = $claims['iss'] ?? null;
         if ($issuer !== $this->expectedCoreIdentityIssuer) {
             throw new InvalidTokenException(sprintf(
                 'The issuer (iss) for CoreIdentityJWT is invalid: %s (expecting %s)',
-                $issuer ?? 'null',
+                Assert::describe($issuer),
                 $this->expectedCoreIdentityIssuer
             ));
         }
@@ -471,17 +545,18 @@ class GovUkAccount extends AbstractProvider
         if ($audience !== $this->clientId) {
             throw new InvalidTokenException(sprintf(
                 'The audience (aud) for CoreIdentityJWT is invalid: %s (expecting %s)',
-                $audience ?? 'null',
+                Assert::describe($audience),
                 $this->clientId
             ));
         }
 
         $subject = $claims['sub'] ?? null;
-        if ($subject !== $idTokenClaims['sub']) {
+        $expectedSubject = $idTokenClaims['sub'] ?? null;
+        if ($subject !== $expectedSubject) {
             throw new InvalidTokenException(sprintf(
                 'The subject (sub) for CoreIdentityJWT is invalid and does not match the subject for the ID Token: %s (expecting %s)',
-                $subject ?? 'null',
-                $idTokenClaims['sub']
+                Assert::describe($subject),
+                Assert::describe($expectedSubject)
             ));
         }
 

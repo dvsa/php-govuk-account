@@ -1,8 +1,18 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+
 parameters:
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
+    # Maximum strictness across the codebase. Strict rules add extra
+    # checks (e.g. no loose comparisons, explicit boolean operands,
+    # disallowed `empty()` on non-arrays) which are particularly useful
+    # for security-sensitive code paths in this OAuth2 / JWT provider.
     level: max
     paths:
         - src
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
     ignoreErrors:
+        # Psr\Cache\InvalidArgumentException is intentionally NOT a Throwable
+        # in the PSR contract; it is documented as such in `@throws` tags
+        # and bridged through the cache implementation at runtime.
         - '#Psr\\Cache\\InvalidArgumentException is not subtype of Throwable#'

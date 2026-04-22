@@ -6,24 +6,25 @@ use Dvsa\GovUkAccount\Exception\InvalidTokenException;
 use Dvsa\GovUkAccount\Provider\GovUkAccount;
 use Dvsa\GovUkAccount\Token\AccessToken;
 use Dvsa\GovUkAccount\Token\GovUkAccountUser;
-use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWT;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7\Response;
 use Mockery as m;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 
 class GovUkAccountTest extends TestCase
 {
     // Generated ES256 (P256) (SHA256) keys for unit tests
-    const CLIENT_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSU1MWXlXcjZnRDRjTzRhRU40emRKZWo2eXp0UwpQWHdLUTRjcWM0YmcvZ2hZY1FFeS9PcnFoV3VNNzJvL3NaaFB6ZXo1Tjk5cjhxVzlrRWdKTk4wMlJnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t';
-    const CLIENT_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNCeXBGZk54Mk1jTWNiamtPcEgKT2IxdVlsNDRaOVJmWmE5MjYxUXc5dEZia1E9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
-    const SERVICE_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGNxQkwrTUh2TWNldi8wWHI3ZFhvOXdQVFpqLwpuZnA1WGg0dnB4MXJneHdHVHpFbmxuQXFVOVkzdXN4Rml6a2g0VkdkVWc1S3JNSmpnd2NrWWVmdG9BPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==';
-    const SERVICE_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNETExrUlQ3UGVpaklERm02SEMKZGlYYXJmbjY0emxTNDhreXdJMWE1em1NMHc9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
-    const SERVICE_CORE_IDENTITY_CLAIM_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSm1sbW92MmtYTHB4NVd2YzMxVHRIZGZjRktNYwp6dGliZHNraHFCL1lSSDEzV2dOOXBpTkVKRUJGS3JjZGQ5SEE4d1VEWDdsMjN5bFB4REVqZnRROXh3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t';
-    const SERVICE_CORE_IDENTITY_CLAIM_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNDSkh1bHVwZ3Bqclo5MitaalUKZ1E5RmY4YVhxNkZIek1EeVJuejNHY1pjNGc9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
-    const SERVICE_PUBLIC_KEY_JWK = [
+    public const CLIENT_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSU1MWXlXcjZnRDRjTzRhRU40emRKZWo2eXp0UwpQWHdLUTRjcWM0YmcvZ2hZY1FFeS9PcnFoV3VNNzJvL3NaaFB6ZXo1Tjk5cjhxVzlrRWdKTk4wMlJnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t';
+    public const CLIENT_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNCeXBGZk54Mk1jTWNiamtPcEgKT2IxdVlsNDRaOVJmWmE5MjYxUXc5dEZia1E9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
+    public const SERVICE_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGNxQkwrTUh2TWNldi8wWHI3ZFhvOXdQVFpqLwpuZnA1WGg0dnB4MXJneHdHVHpFbmxuQXFVOVkzdXN4Rml6a2g0VkdkVWc1S3JNSmpnd2NrWWVmdG9BPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==';
+    public const SERVICE_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNETExrUlQ3UGVpaklERm02SEMKZGlYYXJmbjY0emxTNDhreXdJMWE1em1NMHc9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
+    public const SERVICE_CORE_IDENTITY_CLAIM_PUBLIC_KEY = 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSm1sbW92MmtYTHB4NVd2YzMxVHRIZGZjRktNYwp6dGliZHNraHFCL1lSSDEzV2dOOXBpTkVKRUJGS3JjZGQ5SEE4d1VEWDdsMjN5bFB4REVqZnRROXh3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t';
+    public const SERVICE_CORE_IDENTITY_CLAIM_PRIVATE_KEY = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1FRUNBUUF3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRUp6QWxBZ0VCQkNDSkh1bHVwZ3Bqclo5MitaalUKZ1E5RmY4YVhxNkZIek1EeVJuejNHY1pjNGc9PQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t';
+    public const SERVICE_PUBLIC_KEY_JWK = [
         'keys' => [
                 0 => [  // JWK (Public) for SERVICE_PUBLIC/PRIVATE_KEY
                     'kty' => 'EC',
@@ -35,13 +36,13 @@ class GovUkAccountTest extends TestCase
                     'alg' => 'ES256',
                 ],
                 1 => [  // JWK (Public) for SERVICE_CORE_IDENTITY_PUBLIC/PRIVATE_KEY
-                    'kty' =>'EC',
-                    'use' =>'sig',
-                    'crv' =>'P-256',
-                    'kid' =>'swfvlyjqVu0Budk52Fl95nN7jPWGJ1CHPdY-Q5itATc',
-                    'x' =>'Jmlmov2kXLpx5Wvc31TtHdfcFKMcztibdskhqB_YRH0',
-                    'y' =>'d1oDfaYjRCRARSq3HXfRwPMFA1-5dt8pT8QxI37UPcc',
-                    'alg' =>'ES256',
+                    'kty' => 'EC',
+                    'use' => 'sig',
+                    'crv' => 'P-256',
+                    'kid' => 'swfvlyjqVu0Budk52Fl95nN7jPWGJ1CHPdY-Q5itATc',
+                    'x' => 'Jmlmov2kXLpx5Wvc31TtHdfcFKMcztibdskhqB_YRH0',
+                    'y' => 'd1oDfaYjRCRARSq3HXfRwPMFA1-5dt8pT8QxI37UPcc',
+                    'alg' => 'ES256',
                 ]
             ],
         ];
@@ -54,7 +55,7 @@ class GovUkAccountTest extends TestCase
         $this->httpClient = m::mock(ClientInterface::class, \Psr\Http\Client\ClientInterface::class);
     }
 
-    protected function getProvider(array $options = [], array $collaborators = [], CacheItemPoolInterface $cache = null): GovUkAccount
+    protected function getProvider(array $options = [], array $collaborators = [], ?CacheItemPoolInterface $cache = null): GovUkAccount
     {
         $options = array_merge([
             'client_id' => 'mock_client_id',
@@ -62,7 +63,7 @@ class GovUkAccountTest extends TestCase
                 'logged_in' => 'https://service.example/logged-in',
             ],
             'keys' => [
-                'algorithm' => 'RS256',
+                'algorithm' => 'ES256',
                 'private_key' => static::CLIENT_PRIVATE_KEY,
             ],
             'core_identity_did_document_url' => 'https://iodc.example/.well-known/did.json',
@@ -117,14 +118,12 @@ class GovUkAccountTest extends TestCase
         ], $result);
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
+    #[DoesNotPerformAssertions]
     public function testStringIdentityAssurancePublicKey(): void
     {
         $options = [
             'keys' => [
-                'algorithm' => 'RS256',
+                'algorithm' => 'ES256',
                 'private_key' => static::CLIENT_PRIVATE_KEY,
                 'identity_assurance_public_key' => json_encode(static::SERVICE_PUBLIC_KEY_JWK['keys'][1]),
             ]
@@ -134,9 +133,7 @@ class GovUkAccountTest extends TestCase
         $this->getProvider($options);
     }
 
-    /**
-     * @dataProvider dataProviderSetGetNonce
-     */
+    #[DataProvider('dataProviderSetGetNonce')]
     public function testSetGetNonce(?string $value): void
     {
         $provider = $this->getProvider();
@@ -152,7 +149,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals($nonce, $provider->getNonce());
     }
 
-    public function dataProviderSetGetNonce(): array
+    public static function dataProviderSetGetNonce(): array
     {
         return [
             'Sets the value specified' => [
@@ -164,9 +161,7 @@ class GovUkAccountTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProviderSetGetState
-     */
+    #[DataProvider('dataProviderSetGetState')]
     public function testSetState(?string $value): void
     {
         $provider = $this->getProvider();
@@ -182,7 +177,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals($state, $provider->getState());
     }
 
-    public function dataProviderSetGetState(): array
+    public static function dataProviderSetGetState(): array
     {
         return [
             'Sets the value specified' => [
@@ -237,9 +232,7 @@ class GovUkAccountTest extends TestCase
         $this->assertInstanceOf(\Dvsa\GovUkAccount\Token\AccessToken::class, $token);
     }
 
-    /**
-     * @dataProvider dataProviderValidateAccessToken
-     */
+    #[DataProvider('dataProviderValidateAccessToken')]
     public function testValidateAccessToken(array $accessTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -273,7 +266,7 @@ class GovUkAccountTest extends TestCase
         $provider->validateAccessToken($token->getToken());
     }
 
-    public function dataProviderValidateAccessToken(): array
+    public static function dataProviderValidateAccessToken(): array
     {
         return [
             'Valid Token' => [[
@@ -288,9 +281,7 @@ class GovUkAccountTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProviderValidateIdToken
-     */
+    #[DataProvider('dataProviderValidateIdToken')]
     public function testValidateIdToken(array $idTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -325,7 +316,7 @@ class GovUkAccountTest extends TestCase
         $provider->validateIdToken($token->getIdToken(), 'valid-nonce');
     }
 
-    public function dataProviderValidateIdToken(): array
+    public static function dataProviderValidateIdToken(): array
     {
         return [
             'Valid Token' => [[
@@ -394,9 +385,7 @@ class GovUkAccountTest extends TestCase
         $this->assertEquals('test-subject', $userInfo->getId(), "getID does not return subject");
     }
 
-    /**
-     * @dataProvider dataProviderValidateCoreIdentityToken
-     */
+    #[DataProvider('dataProviderValidateCoreIdentityToken')]
     public function testValidateCoreIdentityClaim(array $coreIdentityTokenPayload, bool $expectException): void
     {
         if ($expectException) {
@@ -428,7 +417,7 @@ class GovUkAccountTest extends TestCase
         $provider->getResourceOwner($token);
     }
 
-    public function dataProviderValidateCoreIdentityToken(): array
+    public static function dataProviderValidateCoreIdentityToken(): array
     {
         return [
             'Valid Token' => [[
