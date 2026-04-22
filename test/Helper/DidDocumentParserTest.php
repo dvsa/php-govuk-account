@@ -44,7 +44,7 @@ class DidDocumentParserTest extends TestCase
     public function testParseToKeyArrayWithInvalidDocument(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('DID document has no assertion method');
+        $this->expectExceptionMessage('DID document has no valid assertionMethod array');
 
         DidDocumentParser::parseToKeyArray('{"assertionMethodTypo":[]}');
     }

@@ -34,7 +34,7 @@ class CachedHttpClientWrapperTest extends TestCase
             ->andReturn(true);
 
         $cacheItem->shouldReceive('get')
-            ->andReturn(serialize($cacheValue));
+            ->andReturn(json_encode($cacheValue));
 
         $wrapper = new CachedHttpClientWrapper($this->httpClient, $cache);
         $result = $wrapper->sendGetRequest('http://example.com');
@@ -65,7 +65,7 @@ class CachedHttpClientWrapperTest extends TestCase
             ->with(CachedHttpClientWrapper::DEFAULT_CACHE_TTL_SECONDS);
 
         $cacheItem->shouldReceive('set')
-            ->with(serialize($cacheValue));
+            ->with(json_encode($cacheValue));
 
         $cache->shouldReceive('save')
             ->with($cacheItem);
@@ -99,7 +99,7 @@ class CachedHttpClientWrapperTest extends TestCase
             ->with(1800);
 
         $cacheItem->shouldReceive('set')
-            ->with(serialize($cacheValue));
+            ->with(json_encode($cacheValue));
 
         $cache->shouldReceive('save')
             ->with($cacheItem);

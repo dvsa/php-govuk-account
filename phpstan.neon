@@ -1,17 +1,18 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+
 parameters:
-    # Level 5 in PHPStan 2.x is roughly equivalent to the previous PHPStan 0.12
-    # `level: max` with iterable-value/generic checks disabled. Increasing the
-    # level meaningfully would require pervasive type hints on array-based
-    # configuration surfaces (e.g. league/oauth2-client options) that are
-    # outside the scope of this dependency-update.
-    level: 5
+    # Maximum strictness across the codebase. Strict rules add extra
+    # checks (e.g. no loose comparisons, explicit boolean operands,
+    # disallowed `empty()` on non-arrays) which are particularly useful
+    # for security-sensitive code paths in this OAuth2 / JWT provider.
+    level: max
     paths:
         - src
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        -
-            identifier: missingType.iterableValue
-        -
-            identifier: missingType.generics
+        # Psr\Cache\InvalidArgumentException is intentionally NOT a Throwable
+        # in the PSR contract; it is documented as such in `@throws` tags
+        # and bridged through the cache implementation at runtime.
         - '#Psr\\Cache\\InvalidArgumentException is not subtype of Throwable#'
